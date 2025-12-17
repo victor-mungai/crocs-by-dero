@@ -1,27 +1,29 @@
 {
-  "name": "crocs-by-dero",
-  "version": "1.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+  "name": "yallist",
+  "version": "3.1.1",
+  "description": "Yet Another Linked List",
+  "main": "yallist.js",
+  "directories": {
+    "test": "test"
   },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0",
-    "framer-motion": "^10.16.16",
-    "lucide-react": "^0.294.0"
-  },
+  "files": [
+    "yallist.js",
+    "iterator.js"
+  ],
+  "dependencies": {},
   "devDependencies": {
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
-    "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32",
-    "tailwindcss": "^3.3.6",
-    "vite": "^5.0.8"
-  }
+    "tap": "^12.1.0"
+  },
+  "scripts": {
+    "test": "tap test/*.js --100",
+    "preversion": "npm test",
+    "postversion": "npm publish",
+    "postpublish": "git push origin --all; git push origin --tags"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isaacs/yallist.git"
+  },
+  "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
+  "license": "ISC"
 }
-
