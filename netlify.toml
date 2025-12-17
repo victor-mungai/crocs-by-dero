@@ -1,0 +1,15 @@
+# Netlify configuration file
+# This helps Netlify know how to build and serve your site
+
+[build]
+  # Command to build your site
+  command = "npm run build"
+  # Directory containing the built files
+  publish = "dist"
+
+# Redirect all routes to index.html for React Router
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
