@@ -79,16 +79,6 @@ exports.handler = async (event, context) => {
     const tokenData = await tokenResponse.json()
     const access_token = tokenData.access_token
 
-    if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.json()
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: 'Failed to get access token', details: errorData })
-      }
-    }
-
-    const { access_token } = await tokenResponse.json()
-
     // M-Pesa STK Push URL
     const stkPushUrl = process.env.MPESA_ENVIRONMENT === 'production'
       ? 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest'

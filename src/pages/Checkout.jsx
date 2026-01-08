@@ -1,68 +1,111 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api'
 import { useCart } from '../context/CartContext'
 import { useProducts, formatPrice } from '../context/ProductContext'
-import { Trash2, Plus, Minus, MessageCircle, ArrowLeft, CreditCard, Loader, CheckCircle, XCircle, Phone } from 'lucide-react'
+import { useOrder } from '../context/OrderContext'
+import { calculateDeliveryFee, getPickupLocation, formatDistance, calculateDistance } from '../utils/deliveryUtils'
+import { Trash2, Plus, Minus, ArrowLeft, CreditCard, Loader, CheckCircle, XCircle, Phone, MapPin, Package } from 'lucide-react'
+
+const GOOGLE_MAPS_API_KEY = process.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '300px',
+  borderRadius: '12px'
+}
 
 export default function Checkout() {
   const navigate = useNavigate()
   const { cart, removeFromCart, updateQuantity, clearCart, getCartTotal } = useCart()
   const { getCharms } = useProducts()
+  const { placeOrder } = useOrder()
   const [suggestedCharms, setSuggestedCharms] = useState([])
-  const [paymentMethod, setPaymentMethod] = useState('whatsapp') // 'whatsapp' or 'mpesa'
+  const [deliveryType, setDeliveryType] = useState('delivery') // 'delivery' or 'collect'
   const [phoneNumber, setPhoneNumber] = useState('')
+  const [customerName, setCustomerName] = useState('')
+  const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [deliveryLocation, setDeliveryLocation] = useState(null)
+  const [deliveryFee, setDeliveryFee] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [paymentStatus, setPaymentStatus] = useState(null) // 'success', 'error', or null
+  const [paymentStatus, setPaymentStatus] = useState(null)
   const [paymentMessage, setPaymentMessage] = useState('')
+  const [map, setMap] = useState(null)
 
   const charms = getCharms()
-  const total = getCartTotal()
+  const subtotal = getCartTotal()
+  const total = subtotal + (deliveryType === 'delivery' ? deliveryFee : 0)
 
-  // Suggest charms if cart has crocs
   useEffect(() => {
     if (cart.some(item => item.product.type === 'crocs') && charms.length > 0) {
       setSuggestedCharms(charms.slice(0, 3))
     }
   }, [cart, charms])
 
-  const handleWhatsAppCheckout = () => {
-    let message = 'Hi! I would like to order:\n\n'
-    
-    cart.forEach(item => {
-      message += `• ${item.product.name}`
-      if (item.size) message += ` - Size: ${item.size}`
-      if (item.color) message += `, Color: ${item.color}`
-      message += ` x${item.quantity} - ${formatPrice(item.product.price * item.quantity)}\n`
-    })
-
-    if (suggestedCharms.length > 0) {
-      message += '\nSuggested Charms:\n'
-      suggestedCharms.forEach(charm => {
-        message += `• ${charm.name} - ${formatPrice(charm.price)}\n`
-      })
+  // Calculate delivery fee when location changes
+  useEffect(() => {
+    if (deliveryType === 'delivery' && deliveryLocation) {
+      const pickupLocation = getPickupLocation()
+      const distance = calculateDistance(
+        pickupLocation.lat,
+        pickupLocation.lng,
+        deliveryLocation.lat,
+        deliveryLocation.lng
+      )
+      const fee = calculateDeliveryFee(distance)
+      setDeliveryFee(fee)
+    } else {
+      setDeliveryFee(0)
     }
+  }, [deliveryLocation, deliveryType])
 
-    message += `\nTotal: ${formatPrice(total)}`
-
-    const whatsappUrl = `https://wa.me/254712080372?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, '_blank')
+  const handleMapClick = (event) => {
+    if (deliveryType === 'delivery' && event.latLng) {
+      const location = {
+        lat: event.latLng.lat(),
+        lng: event.latLng.lng()
+      }
+      setDeliveryLocation(location)
+      
+      // Reverse geocode to get address (simplified - in production use Google Geocoding API)
+      setDeliveryAddress(`Lat: ${location.lat.toFixed(6)}, Lng: ${location.lng.toFixed(6)}`)
+    }
   }
 
   const handleMpesaPayment = async () => {
-    // Validate phone number
+    // Validation
     if (!phoneNumber || phoneNumber.trim() === '') {
       setPaymentStatus('error')
       setPaymentMessage('Please enter your M-Pesa phone number')
       return
     }
 
-    // Basic phone validation
+    if (!customerName || customerName.trim() === '') {
+      setPaymentStatus('error')
+      setPaymentMessage('Please enter your name')
+      return
+    }
+
+    if (deliveryType === 'delivery') {
+      if (!deliveryLocation) {
+        setPaymentStatus('error')
+        setPaymentMessage('Please select your delivery location on the map')
+        return
+      }
+      if (!deliveryAddress || deliveryAddress.trim() === '') {
+        setPaymentStatus('error')
+        setPaymentMessage('Please enter your delivery address')
+        return
+      }
+    }
+
+    // Phone validation
     const phoneRegex = /^(\+?254|0)?[17]\d{8}$/
     const cleanPhone = phoneNumber.replace(/\s+/g, '').replace(/^\+/, '')
     if (!phoneRegex.test(cleanPhone) && cleanPhone.length < 9) {
       setPaymentStatus('error')
-      setPaymentMessage('Please enter a valid Kenyan phone number (e.g., 0712345678 or 254712345678)')
+      setPaymentMessage('Please enter a valid Kenyan phone number')
       return
     }
 
@@ -71,10 +114,8 @@ export default function Checkout() {
     setPaymentMessage('')
 
     try {
-      // Generate order reference
+      // Process M-Pesa payment
       const orderRef = `FWK${Date.now()}`
-      
-      // Get the Netlify function URL
       const functionUrl = window.location.origin.includes('netlify')
         ? `${window.location.origin}/.netlify/functions/mpesa-stk-push`
         : '/.netlify/functions/mpesa-stk-push'
@@ -94,24 +135,57 @@ export default function Checkout() {
 
       const data = await response.json()
 
-      if (!response.ok || !data.success) {
+      if (!response.ok) {
+        throw new Error(data.error || data.details?.errorMessage || 'Payment initiation failed')
+      }
+
+      if (!data.success) {
         throw new Error(data.details?.errorMessage || data.error || 'Payment initiation failed')
       }
 
-      // Success - STK Push initiated
+      // Create order after successful payment initiation
+      const orderData = {
+        items: cart.map(item => ({
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            image: item.product.image,
+            price: item.product.price
+          },
+          size: item.size,
+          color: item.color,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        customerName: customerName.trim(),
+        customerPhone: cleanPhone,
+        deliveryType,
+        deliveryAddress: deliveryType === 'delivery' ? deliveryAddress.trim() : null,
+        deliveryLocation: deliveryType === 'delivery' ? deliveryLocation : null,
+        subtotal,
+        deliveryFee: deliveryType === 'delivery' ? deliveryFee : 0,
+        total,
+        paymentMethod: 'mpesa',
+        paymentReference: orderRef,
+        status: 'placed'
+      }
+
+      const newOrder = await placeOrder(orderData)
+
+      // Success
       setPaymentStatus('success')
-      setPaymentMessage(data.customerMessage || 'Please check your phone and enter your M-Pesa PIN to complete the payment.')
+      setPaymentMessage('Payment initiated! Please check your phone and enter your M-Pesa PIN.')
       
-      // Clear cart after successful payment initiation
+      // Clear cart and redirect to tracking
       setTimeout(() => {
         clearCart()
-        navigate('/')
-      }, 5000)
+        navigate(`/track-order/${newOrder.id}`)
+      }, 3000)
 
     } catch (error) {
       console.error('M-Pesa payment error:', error)
       setPaymentStatus('error')
-      setPaymentMessage(error.message || 'Failed to initiate payment. Please try again or use WhatsApp checkout.')
+      setPaymentMessage(error.message || 'Failed to initiate payment. Please try again.')
     } finally {
       setIsProcessing(false)
     }
@@ -152,8 +226,9 @@ export default function Checkout() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Cart Items */}
+          {/* Cart Items & Delivery Options */}
           <div className="lg:col-span-2 space-y-4">
+            {/* Cart Items */}
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-6">Your Cart ({cart.length} items)</h2>
               <div className="space-y-4">
@@ -206,94 +281,142 @@ export default function Checkout() {
               </div>
             </div>
 
-            {/* Suggested Charms */}
-            {suggestedCharms.length > 0 && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Suggested Charms</h2>
-                <p className="text-gray-600 mb-4">Personalize your Crocs with these charms!</p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {suggestedCharms.map((charm) => (
-                    <div key={charm.id} className="border border-gray-200 rounded-lg p-4">
-                      <img
-                        src={charm.image}
-                        alt={charm.name}
-                        className="w-full h-32 object-cover rounded-lg mb-2"
-                      />
-                      <h3 className="font-semibold text-sm mb-1">{charm.name}</h3>
-                      <p className="text-crocs-green font-bold">{formatPrice(charm.price)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-24">
-              <h2 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
-              <div className="space-y-4 mb-6">
-                <div className="flex justify-between text-gray-600">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(total)}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Delivery</span>
-                  <span className="text-crocs-green">Free</span>
-                </div>
-                <div className="border-t border-gray-200 pt-4">
-                  <div className="flex justify-between text-xl font-bold text-gray-900">
-                    <span>Total</span>
-                    <span className="text-crocs-green">{formatPrice(total)}</span>
-                  </div>
-                </div>
+            {/* Delivery Type Selection */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Delivery Option</h2>
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <button
+                  onClick={() => setDeliveryType('delivery')}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    deliveryType === 'delivery'
+                      ? 'border-crocs-green bg-crocs-light'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <MapPin size={24} className={`mx-auto mb-2 ${deliveryType === 'delivery' ? 'text-crocs-green' : 'text-gray-400'}`} />
+                  <p className={`font-semibold ${deliveryType === 'delivery' ? 'text-crocs-green' : 'text-gray-700'}`}>
+                    Home Delivery
+                  </p>
+                  {deliveryType === 'delivery' && deliveryFee > 0 && (
+                    <p className="text-sm text-gray-600 mt-1">{formatPrice(deliveryFee)}</p>
+                  )}
+                </button>
+                <button
+                  onClick={() => setDeliveryType('collect')}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    deliveryType === 'collect'
+                      ? 'border-crocs-green bg-crocs-light'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <Package size={24} className={`mx-auto mb-2 ${deliveryType === 'collect' ? 'text-crocs-green' : 'text-gray-400'}`} />
+                  <p className={`font-semibold ${deliveryType === 'collect' ? 'text-crocs-green' : 'text-gray-700'}`}>
+                    Collect
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1">Free</p>
+                </button>
               </div>
 
-              {/* Payment Method Selection */}
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Payment Method</h3>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => setPaymentMethod('whatsapp')}
-                    className={`w-full p-3 rounded-lg border-2 transition-all ${
-                      paymentMethod === 'whatsapp'
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <MessageCircle size={20} className={paymentMethod === 'whatsapp' ? 'text-green-600' : 'text-gray-600'} />
-                      <span className={paymentMethod === 'whatsapp' ? 'font-semibold text-green-700' : 'text-gray-700'}>
-                        WhatsApp Order
-                      </span>
-                    </div>
-                  </button>
-                  <button
-                    onClick={() => setPaymentMethod('mpesa')}
-                    className={`w-full p-3 rounded-lg border-2 transition-all ${
-                      paymentMethod === 'mpesa'
-                        ? 'border-crocs-green bg-crocs-light'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-2">
-                      <CreditCard size={20} className={paymentMethod === 'mpesa' ? 'text-crocs-green' : 'text-gray-600'} />
-                      <span className={paymentMethod === 'mpesa' ? 'font-semibold text-crocs-green' : 'text-gray-700'}>
-                        Pay with M-Pesa
-                      </span>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* M-Pesa Phone Number Input */}
-              {paymentMethod === 'mpesa' && (
+              {/* Delivery Location Map */}
+              {deliveryType === 'delivery' && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   className="mb-4"
                 >
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Select Delivery Location
+                  </label>
+                  {GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY' ? (
+                    <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+                      <GoogleMap
+                        mapContainerStyle={mapContainerStyle}
+                        center={deliveryLocation || getPickupLocation()}
+                        zoom={13}
+                        onClick={handleMapClick}
+                        onLoad={(map) => setMap(map)}
+                      >
+                        {deliveryLocation && (
+                          <Marker
+                            position={deliveryLocation}
+                            icon={{
+                              url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                            }}
+                          />
+                        )}
+                        <Marker
+                          position={getPickupLocation()}
+                          icon={{
+                            url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                          }}
+                          title="Pickup Location (Nairobi City Stadium)"
+                        />
+                      </GoogleMap>
+                    </LoadScript>
+                  ) : (
+                    <div className="bg-gray-100 rounded-lg p-8 text-center">
+                      <p className="text-gray-600">Map requires Google Maps API key</p>
+                    </div>
+                  )}
+                  {deliveryLocation && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      Distance: {formatDistance(calculateDistance(
+                        getPickupLocation().lat,
+                        getPickupLocation().lng,
+                        deliveryLocation.lat,
+                        deliveryLocation.lng
+                      ))}
+                    </p>
+                  )}
+                  <input
+                    type="text"
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    placeholder="Enter your delivery address"
+                    className="w-full mt-4 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-crocs-green focus:outline-none"
+                  />
+                </motion.div>
+              )}
+
+              {/* Collect Information */}
+              {deliveryType === 'collect' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="p-4 bg-blue-50 rounded-lg"
+                >
+                  <h3 className="font-semibold text-gray-900 mb-2">Pickup Location</h3>
+                  <p className="text-sm text-gray-600 mb-2">
+                    <MapPin size={16} className="inline mr-1" />
+                    Nairobi City Stadium
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Please collect your order from our pickup location. We'll notify you when it's ready for collection.
+                  </p>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Customer Information */}
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Your Information</h2>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-crocs-green focus:outline-none"
+                  />
+                </div>
+                <div>
                   <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
                     M-Pesa Phone Number
                   </label>
@@ -305,13 +428,41 @@ export default function Checkout() {
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
                       placeholder="0712345678 or 254712345678"
-                      className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-crocs-green focus:outline-none transition-all"
+                      className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-crocs-green focus:outline-none"
                       disabled={isProcessing}
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Enter the phone number registered with M-Pesa</p>
-                </motion.div>
-              )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Order Summary */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-24">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Order Summary</h2>
+              <div className="space-y-4 mb-6">
+                <div className="flex justify-between text-gray-600">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-gray-600">
+                  <span>Delivery</span>
+                  <span>
+                    {deliveryType === 'delivery' 
+                      ? formatPrice(deliveryFee) 
+                      : <span className="text-crocs-green">Free</span>
+                    }
+                  </span>
+                </div>
+                <div className="border-t border-gray-200 pt-4">
+                  <div className="flex justify-between text-xl font-bold text-gray-900">
+                    <span>Total</span>
+                    <span className="text-crocs-green">{formatPrice(total)}</span>
+                  </div>
+                </div>
+              </div>
 
               {/* Payment Status Messages */}
               <AnimatePresence>
@@ -338,38 +489,26 @@ export default function Checkout() {
                 )}
               </AnimatePresence>
 
-              {/* Payment Buttons */}
-              {paymentMethod === 'whatsapp' ? (
-                <motion.button
-                  onClick={handleWhatsAppCheckout}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full py-4 bg-green-500 text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-green-600 transition-all duration-200 flex items-center justify-center space-x-2 mb-4"
-                >
-                  <MessageCircle size={24} />
-                  <span>Checkout via WhatsApp</span>
-                </motion.button>
-              ) : (
-                <motion.button
-                  onClick={handleMpesaPayment}
-                  disabled={isProcessing || !phoneNumber.trim()}
-                  whileHover={{ scale: isProcessing || !phoneNumber.trim() ? 1 : 1.02 }}
-                  whileTap={{ scale: isProcessing || !phoneNumber.trim() ? 1 : 0.98 }}
-                  className="w-full py-4 bg-crocs-green text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-crocs-dark transition-all duration-200 flex items-center justify-center space-x-2 mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader size={24} className="animate-spin" />
-                      <span>Processing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard size={24} />
-                      <span>Pay {formatPrice(total)} with M-Pesa</span>
-                    </>
-                  )}
-                </motion.button>
-              )}
+              {/* Payment Button */}
+              <motion.button
+                onClick={handleMpesaPayment}
+                disabled={isProcessing || !phoneNumber.trim() || !customerName.trim() || (deliveryType === 'delivery' && !deliveryLocation)}
+                whileHover={{ scale: isProcessing || !phoneNumber.trim() || !customerName.trim() || (deliveryType === 'delivery' && !deliveryLocation) ? 1 : 1.02 }}
+                whileTap={{ scale: isProcessing || !phoneNumber.trim() || !customerName.trim() || (deliveryType === 'delivery' && !deliveryLocation) ? 1 : 0.98 }}
+                className="w-full py-4 bg-crocs-green text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-crocs-dark transition-all duration-200 flex items-center justify-center space-x-2 mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader size={24} className="animate-spin" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <CreditCard size={24} />
+                    <span>Pay {formatPrice(total)} with M-Pesa</span>
+                  </>
+                )}
+              </motion.button>
 
               <button
                 onClick={clearCart}
@@ -384,4 +523,3 @@ export default function Checkout() {
     </div>
   )
 }
-

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useProducts, formatPrice } from '../context/ProductContext'
 import { useCart } from '../context/CartContext'
-import { ArrowLeft, ShoppingBag, MessageCircle, Check, X } from 'lucide-react'
+import { ArrowLeft, ShoppingBag, Check, X } from 'lucide-react'
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -55,11 +55,6 @@ export default function ProductDetail() {
   const hasDiscount = product.originalPrice && product.originalPrice > product.price
   const images = product.images || [product.image]
 
-  const handleWhatsApp = () => {
-    const message = `Hi! I'm interested in: ${product.name} - Size: ${selectedSize}, Color: ${selectedColor} - ${formatPrice(product.price)}`
-    const whatsappUrl = `https://wa.me/1234567890?text=${encodeURIComponent(message)}`
-    window.open(whatsappUrl, '_blank')
-  }
 
   const handleAddToCart = () => {
     if (!selectedSize && product.type === 'crocs') {
@@ -276,15 +271,6 @@ export default function ProductDetail() {
                       View Cart
                     </motion.button>
 
-                    <motion.button
-                      onClick={handleWhatsApp}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full py-4 bg-green-500 text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-green-600 transition-all duration-200 flex items-center justify-center space-x-2"
-                    >
-                      <MessageCircle size={24} />
-                      <span>Order via WhatsApp</span>
-                    </motion.button>
                   </>
                 ) : (
                   <div className="w-full py-4 bg-gray-300 text-gray-600 rounded-xl font-semibold text-lg text-center flex items-center justify-center space-x-2">
