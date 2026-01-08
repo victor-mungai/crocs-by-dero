@@ -1,0 +1,13 @@
+# robots.txt for Footwear Kenya
+
+User-agent: *
+# Disallow admin panel from being indexed
+Disallow: /admin
+Disallow: /admin/
+
+# Allow all other pages
+Allow: /
+
+# Sitemap (if you have one, uncomment and add your sitemap URL)
+# Sitemap: https://yourdomain.com/sitemap.xml
+

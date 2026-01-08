@@ -12,4 +12,3 @@ Allow: /
 
 # Sitemap (if you have one, uncomment and add your sitemap URL)
 # Sitemap: https://yourdomain.com/sitemap.xml
-
