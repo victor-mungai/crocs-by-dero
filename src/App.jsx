@@ -26,6 +26,9 @@ function App() {
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/checkout" element={<Checkout />} />
+              {/* Hidden admin route - not in navigation */}
+              <Route path="/manage-dashboard" element={<Admin />} />
+              {/* Keep /admin for backward compatibility but robots.txt blocks it */}
               <Route path="/admin" element={<Admin />} />
             </Routes>
           </main>

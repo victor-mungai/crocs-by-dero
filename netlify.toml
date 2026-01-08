@@ -7,6 +7,11 @@
   # Directory containing the built files
   publish = "dist"
 
+# Functions configuration
+[functions]
+  # Node.js version for serverless functions
+  node_bundler = "esbuild"
+
 # Redirect all routes to index.html for React Router
 [[redirects]]
   from = "/*"

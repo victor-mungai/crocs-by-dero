@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../context/CartContext'
 import { useProducts, formatPrice } from '../context/ProductContext'
-import { Trash2, Plus, Minus, MessageCircle, ArrowLeft } from 'lucide-react'
+import { Trash2, Plus, Minus, MessageCircle, ArrowLeft, CreditCard, Loader, CheckCircle, XCircle, Phone } from 'lucide-react'
 
 export default function Checkout() {
   const navigate = useNavigate()
   const { cart, removeFromCart, updateQuantity, clearCart, getCartTotal } = useCart()
   const { getCharms } = useProducts()
   const [suggestedCharms, setSuggestedCharms] = useState([])
+  const [paymentMethod, setPaymentMethod] = useState('whatsapp') // 'whatsapp' or 'mpesa'
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [paymentStatus, setPaymentStatus] = useState(null) // 'success', 'error', or null
+  const [paymentMessage, setPaymentMessage] = useState('')
 
   const charms = getCharms()
   const total = getCartTotal()
@@ -28,7 +33,7 @@ export default function Checkout() {
       message += `• ${item.product.name}`
       if (item.size) message += ` - Size: ${item.size}`
       if (item.color) message += `, Color: ${item.color}`
-      message += ` x${item.quantity} - ${formatPrice(item.price * item.quantity)}\n`
+      message += ` x${item.quantity} - ${formatPrice(item.product.price * item.quantity)}\n`
     })
 
     if (suggestedCharms.length > 0) {
@@ -40,8 +45,76 @@ export default function Checkout() {
 
     message += `\nTotal: ${formatPrice(total)}`
 
-    const whatsappUrl = `https://wa.me/1234567890?text=${encodeURIComponent(message)}`
+    const whatsappUrl = `https://wa.me/254712080372?text=${encodeURIComponent(message)}`
     window.open(whatsappUrl, '_blank')
+  }
+
+  const handleMpesaPayment = async () => {
+    // Validate phone number
+    if (!phoneNumber || phoneNumber.trim() === '') {
+      setPaymentStatus('error')
+      setPaymentMessage('Please enter your M-Pesa phone number')
+      return
+    }
+
+    // Basic phone validation
+    const phoneRegex = /^(\+?254|0)?[17]\d{8}$/
+    const cleanPhone = phoneNumber.replace(/\s+/g, '').replace(/^\+/, '')
+    if (!phoneRegex.test(cleanPhone) && cleanPhone.length < 9) {
+      setPaymentStatus('error')
+      setPaymentMessage('Please enter a valid Kenyan phone number (e.g., 0712345678 or 254712345678)')
+      return
+    }
+
+    setIsProcessing(true)
+    setPaymentStatus(null)
+    setPaymentMessage('')
+
+    try {
+      // Generate order reference
+      const orderRef = `FWK${Date.now()}`
+      
+      // Get the Netlify function URL
+      const functionUrl = window.location.origin.includes('netlify')
+        ? `${window.location.origin}/.netlify/functions/mpesa-stk-push`
+        : '/.netlify/functions/mpesa-stk-push'
+
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phoneNumber: phoneNumber.trim(),
+          amount: total,
+          accountReference: orderRef,
+          transactionDesc: `Footwear Kenya Order - ${orderRef}`
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.details?.errorMessage || data.error || 'Payment initiation failed')
+      }
+
+      // Success - STK Push initiated
+      setPaymentStatus('success')
+      setPaymentMessage(data.customerMessage || 'Please check your phone and enter your M-Pesa PIN to complete the payment.')
+      
+      // Clear cart after successful payment initiation
+      setTimeout(() => {
+        clearCart()
+        navigate('/')
+      }, 5000)
+
+    } catch (error) {
+      console.error('M-Pesa payment error:', error)
+      setPaymentStatus('error')
+      setPaymentMessage(error.message || 'Failed to initiate payment. Please try again or use WhatsApp checkout.')
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   if (cart.length === 0) {
@@ -176,15 +249,127 @@ export default function Checkout() {
                 </div>
               </div>
 
-              <motion.button
-                onClick={handleWhatsAppCheckout}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full py-4 bg-green-500 text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-green-600 transition-all duration-200 flex items-center justify-center space-x-2 mb-4"
-              >
-                <MessageCircle size={24} />
-                <span>Checkout via WhatsApp</span>
-              </motion.button>
+              {/* Payment Method Selection */}
+              <div className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Payment Method</h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setPaymentMethod('whatsapp')}
+                    className={`w-full p-3 rounded-lg border-2 transition-all ${
+                      paymentMethod === 'whatsapp'
+                        ? 'border-green-500 bg-green-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <MessageCircle size={20} className={paymentMethod === 'whatsapp' ? 'text-green-600' : 'text-gray-600'} />
+                      <span className={paymentMethod === 'whatsapp' ? 'font-semibold text-green-700' : 'text-gray-700'}>
+                        WhatsApp Order
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setPaymentMethod('mpesa')}
+                    className={`w-full p-3 rounded-lg border-2 transition-all ${
+                      paymentMethod === 'mpesa'
+                        ? 'border-crocs-green bg-crocs-light'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <CreditCard size={20} className={paymentMethod === 'mpesa' ? 'text-crocs-green' : 'text-gray-600'} />
+                      <span className={paymentMethod === 'mpesa' ? 'font-semibold text-crocs-green' : 'text-gray-700'}>
+                        Pay with M-Pesa
+                      </span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* M-Pesa Phone Number Input */}
+              {paymentMethod === 'mpesa' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-4"
+                >
+                  <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
+                    M-Pesa Phone Number
+                  </label>
+                  <div className="flex items-center space-x-2">
+                    <Phone size={18} className="text-gray-400" />
+                    <input
+                      type="tel"
+                      id="phone"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="0712345678 or 254712345678"
+                      className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-crocs-green focus:outline-none transition-all"
+                      disabled={isProcessing}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Enter the phone number registered with M-Pesa</p>
+                </motion.div>
+              )}
+
+              {/* Payment Status Messages */}
+              <AnimatePresence>
+                {paymentStatus && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className={`mb-4 p-4 rounded-lg flex items-start space-x-3 ${
+                      paymentStatus === 'success'
+                        ? 'bg-green-50 border border-green-200'
+                        : 'bg-red-50 border border-red-200'
+                    }`}
+                  >
+                    {paymentStatus === 'success' ? (
+                      <CheckCircle size={20} className="text-green-600 mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <XCircle size={20} className="text-red-600 mt-0.5 flex-shrink-0" />
+                    )}
+                    <p className={`text-sm ${paymentStatus === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+                      {paymentMessage}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Payment Buttons */}
+              {paymentMethod === 'whatsapp' ? (
+                <motion.button
+                  onClick={handleWhatsAppCheckout}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full py-4 bg-green-500 text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-green-600 transition-all duration-200 flex items-center justify-center space-x-2 mb-4"
+                >
+                  <MessageCircle size={24} />
+                  <span>Checkout via WhatsApp</span>
+                </motion.button>
+              ) : (
+                <motion.button
+                  onClick={handleMpesaPayment}
+                  disabled={isProcessing || !phoneNumber.trim()}
+                  whileHover={{ scale: isProcessing || !phoneNumber.trim() ? 1 : 1.02 }}
+                  whileTap={{ scale: isProcessing || !phoneNumber.trim() ? 1 : 0.98 }}
+                  className="w-full py-4 bg-crocs-green text-white rounded-xl font-semibold text-lg shadow-lg hover:bg-crocs-dark transition-all duration-200 flex items-center justify-center space-x-2 mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader size={24} className="animate-spin" />
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard size={24} />
+                      <span>Pay {formatPrice(total)} with M-Pesa</span>
+                    </>
+                  )}
+                </motion.button>
+              )}
 
               <button
                 onClick={clearCart}

@@ -54,8 +54,28 @@ export default function Admin() {
     setLoginError('')
     setIsLoading(true)
 
+    // Fallback password works even with Firebase (as backup)
+    const FALLBACK_PASSWORD = 'dero2024'
+    
+    // Check fallback password first (works regardless of Firebase)
+    if (password === FALLBACK_PASSWORD) {
+      setIsAuthenticated(true)
+      localStorage.setItem('admin-authenticated', 'true')
+      setPassword('')
+      setEmail('')
+      setIsLoading(false)
+      return
+    }
+
+    // If Firebase is configured, try Firebase authentication
     if (isFirebaseConfigured) {
       try {
+        // Require email for Firebase login
+        if (!email || email.trim() === '') {
+          setLoginError('Please enter your email address for Firebase login, or use the fallback password.')
+          setIsLoading(false)
+          return
+        }
         await signInAdmin(email, password)
         setEmail('')
         setPassword('')
@@ -66,15 +86,9 @@ export default function Admin() {
         setIsLoading(false)
       }
     } else {
-      // Fallback to simple password (for development)
-      if (password === 'dero2024') {
-        setIsAuthenticated(true)
-        localStorage.setItem('admin-authenticated', 'true')
-        setPassword('')
-      } else {
-        setLoginError('Incorrect password')
-        setPassword('')
-      }
+      // No Firebase, only fallback password
+      setLoginError('Incorrect password. Use the fallback password.')
+      setPassword('')
       setIsLoading(false)
     }
   }
@@ -332,16 +346,21 @@ export default function Admin() {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Login</h1>
             <p className="text-gray-600 text-sm">
               {isFirebaseConfigured 
-                ? 'Sign in to access admin panel from any device' 
+                ? 'Sign in with Firebase or use fallback password' 
                 : 'Enter password to access admin panel'}
             </p>
+            {isFirebaseConfigured && (
+              <p className="text-xs text-gray-500 mt-2">
+                💡 Tip: You can use the fallback password if Firebase login fails
+              </p>
+            )}
           </div>
           
           <form onSubmit={handleLogin} className="space-y-5">
             {isFirebaseConfigured && (
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email Address
+                  Email Address <span className="text-gray-400 text-xs">(Optional - for Firebase login)</span>
                 </label>
                 <input
                   type="email"
@@ -350,11 +369,13 @@ export default function Admin() {
                     setEmail(e.target.value)
                     setLoginError('')
                   }}
-                  placeholder="your-email@example.com"
+                  placeholder="your-email@example.com (optional)"
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-crocs-green focus:ring-2 focus:ring-crocs-green/20 focus:outline-none transition-all text-gray-900 placeholder-gray-400"
-                  required
                   autoFocus
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Leave empty and use fallback password if Firebase login fails
+                </p>
               </div>
             )}
             
@@ -369,7 +390,7 @@ export default function Admin() {
                   setPassword(e.target.value)
                   setLoginError('')
                 }}
-                placeholder={isFirebaseConfigured ? "Enter your password" : "Enter password"}
+                placeholder={isFirebaseConfigured ? "Enter password (Firebase or fallback)" : "Enter password"}
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-crocs-green focus:ring-2 focus:ring-crocs-green/20 focus:outline-none transition-all text-gray-900 placeholder-gray-400"
                 required
                 autoFocus={!isFirebaseConfigured}
