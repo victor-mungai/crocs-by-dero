@@ -116,9 +116,19 @@ export default function Checkout() {
     try {
       // Process M-Pesa payment
       const orderRef = `FWK${Date.now()}`
-      const functionUrl = window.location.origin.includes('netlify')
-        ? `${window.location.origin}/.netlify/functions/mpesa-stk-push`
-        : '/.netlify/functions/mpesa-stk-push'
+      
+      // Determine the correct function URL
+      let functionUrl
+      if (window.location.origin.includes('netlify') || window.location.origin.includes('vercel')) {
+        // Production or preview deployment
+        functionUrl = `${window.location.origin}/.netlify/functions/mpesa-stk-push`
+      } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Local development - try Netlify dev server first, fallback to relative path
+        functionUrl = 'http://localhost:8888/.netlify/functions/mpesa-stk-push'
+      } else {
+        // Fallback to relative path
+        functionUrl = '/.netlify/functions/mpesa-stk-push'
+      }
 
       const response = await fetch(functionUrl, {
         method: 'POST',
@@ -133,10 +143,39 @@ export default function Checkout() {
         })
       })
 
-      const data = await response.json()
-
+      // Check if response is ok before parsing JSON
       if (!response.ok) {
-        throw new Error(data.error || data.details?.errorMessage || 'Payment initiation failed')
+        let errorMessage = 'Payment initiation failed'
+        
+        // Handle 405 Method Not Allowed (usually means function not available locally)
+        if (response.status === 405) {
+          errorMessage = 'Payment service is not available in local development. Please use "netlify dev" to run the server, or test on the deployed site.'
+        } else {
+          try {
+            const errorText = await response.text()
+            if (errorText) {
+              const errorData = JSON.parse(errorText)
+              errorMessage = errorData.error || errorData.details?.errorMessage || errorMessage
+            } else {
+              errorMessage = `Server error: ${response.status} ${response.statusText}`
+            }
+          } catch (e) {
+            errorMessage = `Server error: ${response.status} ${response.statusText}`
+          }
+        }
+        throw new Error(errorMessage)
+      }
+
+      // Parse JSON response
+      let data
+      try {
+        const responseText = await response.text()
+        if (!responseText) {
+          throw new Error('Empty response from server')
+        }
+        data = JSON.parse(responseText)
+      } catch (parseError) {
+        throw new Error('Invalid response from payment server. Please try again.')
       }
 
       if (!data.success) {
@@ -185,7 +224,16 @@ export default function Checkout() {
     } catch (error) {
       console.error('M-Pesa payment error:', error)
       setPaymentStatus('error')
-      setPaymentMessage(error.message || 'Failed to initiate payment. Please try again.')
+      
+      // Provide user-friendly error messages
+      let userMessage = error.message || 'Failed to initiate payment. Please try again.'
+      
+      // Handle network errors
+      if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        userMessage = 'Unable to connect to payment service. Please check your internet connection or try again later.'
+      }
+      
+      setPaymentMessage(userMessage)
     } finally {
       setIsProcessing(false)
     }
