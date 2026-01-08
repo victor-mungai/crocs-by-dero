@@ -143,39 +143,55 @@ export default function Checkout() {
         })
       })
 
-      // Check if response is ok before parsing JSON
+      // Read response text first (can only be read once)
+      let responseText
+      try {
+        responseText = await response.text()
+      } catch (readError) {
+        throw new Error('Failed to read response from payment server. Please check your connection and try again.')
+      }
+
+      // Check if response is ok
       if (!response.ok) {
         let errorMessage = 'Payment initiation failed'
         
         // Handle 405 Method Not Allowed (usually means function not available locally)
         if (response.status === 405) {
           errorMessage = 'Payment service is not available in local development. Please use "netlify dev" to run the server, or test on the deployed site.'
+        } else if (response.status === 404) {
+          errorMessage = 'Payment service endpoint not found. Please check your deployment configuration.'
+        } else if (response.status === 500) {
+          errorMessage = 'Payment server error. Please try again later or contact support.'
         } else {
-          try {
-            const errorText = await response.text()
-            if (errorText) {
-              const errorData = JSON.parse(errorText)
+          // Try to parse error response
+          if (responseText && responseText.trim()) {
+            try {
+              const errorData = JSON.parse(responseText)
               errorMessage = errorData.error || errorData.details?.errorMessage || errorMessage
-            } else {
-              errorMessage = `Server error: ${response.status} ${response.statusText}`
+            } catch (e) {
+              // If not JSON, use the raw text or status
+              errorMessage = responseText.length > 100 
+                ? `Server error: ${response.status} ${response.statusText}` 
+                : responseText
             }
-          } catch (e) {
+          } else {
             errorMessage = `Server error: ${response.status} ${response.statusText}`
           }
         }
         throw new Error(errorMessage)
       }
 
-      // Parse JSON response
+      // Parse JSON response (only if response was ok)
+      if (!responseText || !responseText.trim()) {
+        throw new Error('Empty response from payment server. Please try again.')
+      }
+
       let data
       try {
-        const responseText = await response.text()
-        if (!responseText) {
-          throw new Error('Empty response from server')
-        }
         data = JSON.parse(responseText)
       } catch (parseError) {
-        throw new Error('Invalid response from payment server. Please try again.')
+        console.error('JSON parse error:', parseError, 'Response text:', responseText)
+        throw new Error('Invalid response format from payment server. Please try again.')
       }
 
       if (!data.success) {
