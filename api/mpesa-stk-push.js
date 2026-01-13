@@ -1,8 +1,16 @@
-// M-Pesa STK Push Initiation for Vercel
-// This function initiates an M-Pesa STK Push payment request
+// M-Pesa STK Push Initiation
+// Initiates M-Pesa STK Push payment request
 
 export default async function handler(req, res) {
-  // Only allow POST requests
+  // Handle CORS
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end()
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
@@ -12,9 +20,7 @@ export default async function handler(req, res) {
 
     // Validate input
     if (!phoneNumber || !amount || !accountReference) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: phoneNumber, amount, accountReference' 
-      })
+      return res.status(400).json({ error: 'Missing required fields: phoneNumber, amount, accountReference' })
     }
 
     // Format phone number (remove + and ensure it starts with 254)
@@ -39,12 +45,11 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'M-Pesa credentials not configured' })
     }
 
-    // M-Pesa OAuth URL
+    // Get access token using Daraja OAuth
     const authUrl = process.env.MPESA_ENVIRONMENT === 'production'
       ? 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
       : 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials'
 
-    // Create Basic Auth header
     const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64')
 
     const tokenResponse = await fetch(authUrl, {
@@ -74,10 +79,7 @@ export default async function handler(req, res) {
     // Get shortcode and passkey from environment
     const shortCode = process.env.MPESA_SHORTCODE
     const passKey = process.env.MPESA_PASSKEY
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}` 
-      : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    const callbackUrl = process.env.MPESA_CALLBACK_URL || `${baseUrl}/api/mpesa-callback`
+    const callbackUrl = process.env.MPESA_CALLBACK_URL || `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/mpesa-callback`
 
     if (!shortCode || !passKey) {
       return res.status(500).json({ error: 'M-Pesa shortcode or passkey not configured' })
@@ -101,7 +103,7 @@ export default async function handler(req, res) {
       PhoneNumber: formattedPhone,
       CallBackURL: callbackUrl,
       AccountReference: accountReference.substring(0, 12), // Max 12 characters
-      TransactionDesc: transactionDesc || 'Footwear Kenya Purchase'
+      TransactionDesc: transactionDesc || 'Crocs by Dero Purchase'
     }
 
     // Make STK Push request
@@ -124,11 +126,6 @@ export default async function handler(req, res) {
       })
     }
 
-    // Set CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'POST')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-
     return res.status(200).json({
       success: true,
       checkoutRequestID: stkData.CheckoutRequestID,
@@ -144,4 +141,3 @@ export default async function handler(req, res) {
     })
   }
 }
-

@@ -7,7 +7,7 @@ import { formatPrice } from '../context/ProductContext'
 import { ArrowLeft, Package, MapPin, Clock, CheckCircle, Truck, Loader } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-const GOOGLE_MAPS_API_KEY = process.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'
 
 const mapContainerStyle = {
   width: '100%',

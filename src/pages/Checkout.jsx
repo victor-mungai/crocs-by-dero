@@ -8,7 +8,7 @@ import { useOrder } from '../context/OrderContext'
 import { calculateDeliveryFee, getPickupLocation, formatDistance, calculateDistance } from '../utils/deliveryUtils'
 import { Trash2, Plus, Minus, ArrowLeft, CreditCard, Loader, CheckCircle, XCircle, Phone, MapPin, Package } from 'lucide-react'
 
-const GOOGLE_MAPS_API_KEY = process.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'
 
 const mapContainerStyle = {
   width: '100%',
@@ -122,16 +122,20 @@ export default function Checkout() {
       if (window.location.origin.includes('vercel.app')) {
         // Vercel deployment - use API route
         functionUrl = `${window.location.origin}/api/mpesa-stk-push`
-      } else if (window.location.origin.includes('netlify.app')) {
-        // Netlify deployment - use Netlify function
-        functionUrl = `${window.location.origin}/.netlify/functions/mpesa-stk-push`
+      } else if (window.location.origin.includes('netlify.app') || window.location.origin.includes('ngrok')) {
+        // Netlify deployment or ngrok - use local Netlify dev server for ngrok
+        functionUrl = window.location.origin.includes('ngrok') 
+          ? 'http://localhost:8888/.netlify/functions/mpesa-stk-push'
+          : `${window.location.origin}/.netlify/functions/mpesa-stk-push`
       } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        // Local development - try Vercel dev server first, then Netlify dev server
-        functionUrl = 'http://localhost:3000/api/mpesa-stk-push'
+        // Local development - use Netlify dev server
+        functionUrl = 'http://localhost:8888/.netlify/functions/mpesa-stk-push'
       } else {
-        // Fallback - try API route first (for Vercel), then Netlify function
-        functionUrl = '/api/mpesa-stk-push'
+        // Fallback - try Netlify function
+        functionUrl = '/.netlify/functions/mpesa-stk-push'
       }
+
+      console.log('Payment URL:', functionUrl)
 
       const response = await fetch(functionUrl, {
         method: 'POST',
@@ -142,7 +146,7 @@ export default function Checkout() {
           phoneNumber: phoneNumber.trim(),
           amount: total,
           accountReference: orderRef,
-          transactionDesc: `Footwear Kenya Order - ${orderRef}`
+          transactionDesc: `Crocs by Dero Order - ${orderRef}`
         })
       })
 

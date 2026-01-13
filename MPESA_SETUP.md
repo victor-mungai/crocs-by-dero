@@ -10,10 +10,9 @@ This guide will help you set up M-Pesa payment integration for your Footwear Ken
 4. **Passkey**: Your M-Pesa API passkey
 5. **Netlify Account**: For hosting the serverless functions
 
-## 🔑 Your Current Credentials
+## 🔑 M-Pesa Credentials
 
-- **Consumer Key**: `7bC3y49xfxnBoPsdia2H3PuAKgqjJA6dWelwpTcfGAmIWyQI`
-- **Consumer Secret**: `OCadC4BTlZxhAGO18ZcNmNyOMsaRA9wIlxhYP8BnxqX5dyE1kyqTtyeHpmrW0Jrp`
+All credentials should be stored in environment variables (.env file for local development).
 
 ## ⚙️ Required M-Pesa Settings
 
@@ -25,11 +24,13 @@ You'll need to get these from your M-Pesa Developer Portal:
 
 ## 🚀 Setup Steps
 
-### Step 1: Get Your M-Pesa Passkey and Shortcode
+### Step 1: Get Your M-Pesa Credentials
 
 1. Log in to [M-Pesa Developer Portal](https://developer.safaricom.co.ke/)
 2. Go to **My Apps** → Select your app
 3. Copy the following:
+   - **Consumer Key** (API Credentials)
+   - **Consumer Secret** (API Credentials)
    - **Shortcode** (Paybill/Till Number)
    - **Passkey** (Under API Credentials)
 
@@ -40,17 +41,19 @@ You'll need to get these from your M-Pesa Developer Portal:
 3. Add the following variables:
 
 ```
-MPESA_CONSUMER_KEY=7bC3y49xfxnBoPsdia2H3PuAKgqjJA6dWelwpTcfGAmIWyQI
-MPESA_CONSUMER_SECRET=OCadC4BTlZxhAGO18ZcNmNyOMsaRA9wIlxhYP8BnxqX5dyE1kyqTtyeHpmrW0Jrp
-MPESA_SHORTCODE=YOUR_SHORTCODE_HERE
-MPESA_PASSKEY=YOUR_PASSKEY_HERE
+MPESA_CONSUMER_KEY=YOUR_CONSUMER_KEY
+MPESA_CONSUMER_SECRET=YOUR_CONSUMER_SECRET
+MPESA_SHORTCODE=YOUR_SHORTCODE
+MPESA_PASSKEY=YOUR_PASSKEY
 MPESA_ENVIRONMENT=sandbox
 MPESA_CALLBACK_URL=https://your-site.netlify.app/.netlify/functions/mpesa-callback
 ```
 
 **Important Notes:**
-- Replace `YOUR_SHORTCODE_HERE` with your actual shortcode
-- Replace `YOUR_PASSKEY_HERE` with your actual passkey
+- Replace `YOUR_CONSUMER_KEY` with your actual consumer key
+- Replace `YOUR_CONSUMER_SECRET` with your actual consumer secret
+- Replace `YOUR_SHORTCODE` with your actual shortcode
+- Replace `YOUR_PASSKEY` with your actual passkey
 - For **Sandbox** testing, use `MPESA_ENVIRONMENT=sandbox`
 - For **Production**, use `MPESA_ENVIRONMENT=production`
 - Replace `your-site.netlify.app` with your actual Netlify site URL
