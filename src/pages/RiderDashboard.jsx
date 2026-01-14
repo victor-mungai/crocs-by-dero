@@ -5,7 +5,8 @@ import L from 'leaflet'
 import { getRiderOrders, updateOrderStatus, updateRiderLocation, updateOrderRiderLocation, subscribeToRiderLocation, createOrUpdateRider } from '../firebase/ordersService'
 import { formatPrice } from '../context/ProductContext'
 import { useAuth } from '../context/AuthContext'
-import { Package, MapPin, Play, CheckCircle, Navigation, LogOut, Loader } from 'lucide-react'
+import { isRiderAuthorized } from '../firebase/riderAuthService'
+import { Package, MapPin, Play, CheckCircle, Navigation, LogOut, Loader, AlertCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import 'leaflet/dist/leaflet.css'
 
@@ -70,31 +71,53 @@ export default function RiderDashboard() {
   const [activeOrder, setActiveOrder] = useState(null)
   const [isTracking, setIsTracking] = useState(false)
   const [currentLocation, setCurrentLocation] = useState(null)
+  const [isAuthorized, setIsAuthorized] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
   const watchIdRef = useRef(null)
   const locationUpdateInterval = useRef(null)
   const currentLocationRef = useRef(null)
 
-  // Initialize rider when user logs in
+  // Check rider authorization when user logs in
   useEffect(() => {
-    if (user && !riderId) {
-      const userId = user.uid
-      setRiderId(userId)
-      setRiderName(user.displayName || user.email || 'Rider')
-      
-      // Create or update rider profile
-      createOrUpdateRider(userId, {
-        name: user.displayName || user.email || 'Rider',
-        email: user.email,
-        phone: user.phoneNumber || '',
-        photoURL: user.photoURL || '',
-        isActive: true
-      }).catch(error => {
-        console.error('Error creating rider profile:', error)
-      })
-    } else if (!user && !authLoading) {
-      // Redirect to login if not authenticated
-      navigate('/login?redirect=/rider-dashboard')
+    const checkAuthorization = async () => {
+      if (!user) {
+        if (!authLoading) {
+          // Redirect to login if not authenticated
+          navigate('/login?redirect=/rider-dashboard')
+        }
+        setCheckingAuth(false)
+        return
+      }
+
+      try {
+        const authorized = await isRiderAuthorized(user.email)
+        setIsAuthorized(authorized)
+        
+        if (authorized && !riderId) {
+          const userId = user.uid
+          setRiderId(userId)
+          setRiderName(user.displayName || user.email || 'Rider')
+          
+          // Create or update rider profile
+          createOrUpdateRider(userId, {
+            name: user.displayName || user.email || 'Rider',
+            email: user.email,
+            phone: user.phoneNumber || '',
+            photoURL: user.photoURL || '',
+            isActive: true
+          }).catch(error => {
+            console.error('Error creating rider profile:', error)
+          })
+        }
+      } catch (error) {
+        console.error('Error checking authorization:', error)
+        setIsAuthorized(false)
+      } finally {
+        setCheckingAuth(false)
+      }
     }
+
+    checkAuthorization()
   }, [user, riderId, authLoading, navigate])
 
   useEffect(() => {
@@ -273,6 +296,45 @@ export default function RiderDashboard() {
     : [defaultCenter.lat, defaultCenter.lng]
   
   const mapZoom = currentLocation ? 15 : 12
+
+  // Show loading state while checking authorization
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="animate-spin mx-auto mb-4" size={48} />
+          <p className="text-gray-600">Checking authorization...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show unauthorized message if not authorized
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
+          <AlertCircle className="mx-auto mb-4 text-red-500" size={48} />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-4">
+            Your email ({user?.email}) is not authorized to access the Rider Dashboard.
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Please contact the administrator to request access.
+          </p>
+          <button
+            onClick={() => {
+              signOut()
+              navigate('/')
+            }}
+            className="px-6 py-2 bg-crocs-green text-white rounded-lg font-semibold hover:bg-crocs-dark transition-all"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
