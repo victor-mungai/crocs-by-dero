@@ -90,9 +90,13 @@ export default function RiderDashboard() {
       }
 
       try {
-        console.log('Checking authorization for user:', user.email)
+        console.log('🔐 Checking authorization for user:', {
+          email: user.email,
+          uid: user.uid,
+          displayName: user.displayName
+        })
         const authorized = await isRiderAuthorized(user.email)
-        console.log('Authorization result:', authorized)
+        console.log('🎯 Authorization result:', authorized)
         setIsAuthorized(authorized)
         
         if (authorized && !riderId) {
@@ -112,7 +116,12 @@ export default function RiderDashboard() {
           })
         }
       } catch (error) {
-        console.error('Error checking authorization:', error)
+        console.error('❌ Error checking authorization:', error)
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          email: user?.email
+        })
         setIsAuthorized(false)
       } finally {
         setCheckingAuth(false)
@@ -321,8 +330,16 @@ export default function RiderDashboard() {
           <p className="text-gray-600 mb-4">
             Your email ({user?.email}) is not authorized to access the Rider Dashboard.
           </p>
-          <p className="text-sm text-gray-500 mb-6">
-            Please contact the administrator to request access.
+          <p className="text-sm text-gray-500 mb-2">
+            Please check:
+          </p>
+          <ul className="text-sm text-gray-500 mb-6 list-disc list-inside space-y-1">
+            <li>Your email is in the <code className="bg-gray-100 px-1 rounded">authorizedRiders</code> collection in Firestore</li>
+            <li>The email matches exactly (case-insensitive): <code className="bg-gray-100 px-1 rounded">{user?.email?.toLowerCase()}</code></li>
+            <li>Firestore security rules allow reading the collection</li>
+          </ul>
+          <p className="text-xs text-gray-400 mb-6">
+            Check the browser console (F12) for detailed error messages.
           </p>
           <button
             onClick={() => {

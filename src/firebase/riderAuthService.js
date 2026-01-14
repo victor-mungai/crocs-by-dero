@@ -7,31 +7,74 @@ const AUTHORIZED_RIDERS_COLLECTION = 'authorizedRiders'
 // Check if user email is authorized to access rider dashboard
 export async function isRiderAuthorized(email) {
   if (!isFirebaseConfigured || !db || !email) {
-    console.log('Authorization check failed: Firebase not configured or no email')
+    console.log('Authorization check failed: Firebase not configured or no email', {
+      isFirebaseConfigured,
+      hasDb: !!db,
+      email
+    })
     return false
   }
 
   try {
-    const emailLower = email.toLowerCase()
-    console.log('Checking authorization for email:', emailLower)
+    const emailLower = email.toLowerCase().trim()
+    console.log('🔍 Checking authorization for email:', emailLower)
     
-    // Check if email exists in authorizedRiders collection (case-insensitive)
-    const q = query(
-      collection(db, AUTHORIZED_RIDERS_COLLECTION),
-      where('email', '==', emailLower)
-    )
-    const querySnapshot = await getDocs(q)
+    // Method 1: Try query with where clause
+    try {
+      const q = query(
+        collection(db, AUTHORIZED_RIDERS_COLLECTION),
+        where('email', '==', emailLower)
+      )
+      const querySnapshot = await getDocs(q)
+      
+      console.log('📊 Authorization query result:', {
+        email: emailLower,
+        found: !querySnapshot.empty,
+        count: querySnapshot.size,
+        docs: querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+      })
+      
+      if (!querySnapshot.empty) {
+        console.log('✅ Authorization granted via query')
+        return true
+      }
+    } catch (queryError) {
+      console.warn('⚠️ Query method failed, trying fallback:', queryError)
+    }
     
-    console.log('Authorization query result:', {
-      email: emailLower,
-      found: !querySnapshot.empty,
-      count: querySnapshot.size,
-      docs: querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    })
-    
-    return !querySnapshot.empty
+    // Method 2: Fallback - fetch all and check in memory
+    try {
+      console.log('🔄 Trying fallback method: fetching all authorized riders')
+      const allRidersSnapshot = await getDocs(collection(db, AUTHORIZED_RIDERS_COLLECTION))
+      const allRiders = allRidersSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+      
+      console.log('📋 All authorized riders in database:', allRiders)
+      
+      const isAuthorized = allRiders.some(rider => {
+        const riderEmail = (rider.email || '').toLowerCase().trim()
+        const match = riderEmail === emailLower
+        if (match) {
+          console.log('✅ Found matching rider:', rider)
+        }
+        return match
+      })
+      
+      console.log('🎯 Final authorization result:', isAuthorized)
+      return isAuthorized
+    } catch (fallbackError) {
+      console.error('❌ Fallback method also failed:', fallbackError)
+      throw fallbackError
+    }
   } catch (error) {
-    console.error('Error checking rider authorization:', error)
+    console.error('❌ Error checking rider authorization:', error)
+    console.error('Error details:', {
+      code: error.code,
+      message: error.message,
+      stack: error.stack
+    })
     return false
   }
 }
@@ -110,6 +153,30 @@ export async function removeAuthorizedRider(email) {
     await Promise.all(deletePromises)
   } catch (error) {
     throw error
+  }
+}
+
+// Debug function: List all authorized riders (for troubleshooting)
+export async function debugListAuthorizedRiders() {
+  if (!isFirebaseConfigured || !db) {
+    console.error('Firebase not configured')
+    return []
+  }
+
+  try {
+    const querySnapshot = await getDocs(collection(db, AUTHORIZED_RIDERS_COLLECTION))
+    const riders = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+    
+    console.log('📋 All authorized riders:', riders)
+    console.table(riders.map(r => ({ id: r.id, email: r.email, name: r.name })))
+    
+    return riders
+  } catch (error) {
+    console.error('Error listing authorized riders:', error)
+    return []
   }
 }
 
