@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { Menu, X, ShoppingBag, User, LogOut, Bike } from 'lucide-react'
+import { Menu, X, ShoppingBag, User, LogOut } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
@@ -109,13 +109,6 @@ export default function Navbar() {
                 </span>
               )}
             </Link>
-            <Link
-              to="/rider-dashboard"
-              className="px-4 py-2 text-gray-700 hover:text-crocs-green transition-all duration-200 flex items-center space-x-1"
-            >
-              <Bike size={20} />
-              <span className="text-sm">Rider</span>
-            </Link>
           </div>
 
           {/* Mobile menu button */}
@@ -207,14 +200,6 @@ export default function Navbar() {
                     {cartCount}
                   </span>
                 )}
-              </Link>
-              <Link
-                to="/rider-dashboard"
-                onClick={() => setIsOpen(false)}
-                className="block px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-              >
-                <Bike size={18} />
-                <span>Rider Dashboard</span>
               </Link>
             </div>
           </motion.div>
