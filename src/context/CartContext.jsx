@@ -1,20 +1,42 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { useAuth } from './AuthContext'
+import { getUserCart, saveUserCart, clearUserCart } from '../firebase/cartService'
 
 const CartContext = createContext()
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([])
+  const { user } = useAuth()
 
+  // Load cart when user changes
   useEffect(() => {
-    const savedCart = localStorage.getItem('crocs-cart')
-    if (savedCart) {
-      setCart(JSON.parse(savedCart))
+    const loadCart = async () => {
+      if (user) {
+        // Load from Firebase
+        const firebaseCart = await getUserCart(user.uid)
+        setCart(firebaseCart)
+      } else {
+        // Load from localStorage for guests
+        const savedCart = localStorage.getItem('crocs-cart')
+        if (savedCart) {
+          setCart(JSON.parse(savedCart))
+        } else {
+          setCart([])
+        }
+      }
     }
-  }, [])
+    loadCart()
+  }, [user])
 
-  const saveCart = (newCart) => {
+  const saveCart = async (newCart) => {
     setCart(newCart)
-    localStorage.setItem('crocs-cart', JSON.stringify(newCart))
+    if (user) {
+      // Save to Firebase for logged-in users
+      await saveUserCart(user.uid, newCart)
+    } else {
+      // Save to localStorage for guests
+      localStorage.setItem('crocs-cart', JSON.stringify(newCart))
+    }
   }
 
   const addToCart = (product, size, color) => {
@@ -60,8 +82,13 @@ export function CartProvider({ children }) {
     saveCart(updatedCart)
   }
 
-  const clearCart = () => {
-    saveCart([])
+  const clearCart = async () => {
+    if (user) {
+      await clearUserCart(user.uid)
+    } else {
+      localStorage.removeItem('crocs-cart')
+    }
+    setCart([])
   }
 
   const getCartTotal = () => {

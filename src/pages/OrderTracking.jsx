@@ -1,31 +1,65 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
 import { useOrder } from '../context/OrderContext'
 import { getPickupLocation, formatDistance, calculateDistance } from '../utils/deliveryUtils'
 import { formatPrice } from '../context/ProductContext'
 import { ArrowLeft, Package, MapPin, Clock, CheckCircle, Truck, Loader } from 'lucide-react'
 import { motion } from 'framer-motion'
+import 'leaflet/dist/leaflet.css'
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'
-
-const mapContainerStyle = {
-  width: '100%',
-  height: '500px',
-  borderRadius: '12px'
+// Fix for default marker icons in Leaflet with Vite
+if (L.Icon.Default.prototype._getIconUrl) {
+  delete L.Icon.Default.prototype._getIconUrl
 }
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+})
 
-const defaultCenter = {
-  lat: -1.2921,
-  lng: 36.8219
+// Custom icons
+const redIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+const blueIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+const greenIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [30, 48],
+  iconAnchor: [15, 48],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+// Component to update map center when location changes
+function MapUpdater({ center, zoom }) {
+  const map = useMap()
+  useEffect(() => {
+    map.setView(center, zoom)
+  }, [map, center, zoom])
+  return null
 }
 
 export default function OrderTracking() {
   const { orderId } = useParams()
   const navigate = useNavigate()
   const { currentOrder, fetchOrder, trackOrder } = useOrder()
-  const [map, setMap] = useState(null)
-  const [selectedMarker, setSelectedMarker] = useState(null)
 
   useEffect(() => {
     if (orderId) {
@@ -104,6 +138,15 @@ export default function OrderTracking() {
       deliveryLocation.lng
     )
   }
+
+  // Determine map center
+  const mapCenter = riderLocation 
+    ? [riderLocation.lat, riderLocation.lng]
+    : deliveryLocation 
+    ? [deliveryLocation.lat, deliveryLocation.lng]
+    : [pickupLocation.lat, pickupLocation.lng]
+  
+  const mapZoom = deliveryLocation ? 13 : 12
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -213,94 +256,54 @@ export default function OrderTracking() {
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">Live Tracking</h2>
-              {GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY' ? (
-                <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
-                  <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
-                    center={
-                      riderLocation || deliveryLocation || pickupLocation
-                    }
-                    zoom={deliveryLocation ? 13 : 12}
-                    onLoad={(map) => setMap(map)}
-                  >
-                    {/* Pickup Location */}
-                    <Marker
-                      position={pickupLocation}
-                      icon={{
-                        url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                      }}
-                      onClick={() => setSelectedMarker('pickup')}
-                    />
+              <div className="rounded-lg overflow-hidden" style={{ height: '500px' }}>
+                <MapContainer
+                  center={mapCenter}
+                  zoom={mapZoom}
+                  style={{ height: '100%', width: '100%' }}
+                  scrollWheelZoom={true}
+                >
+                  <MapUpdater center={mapCenter} zoom={mapZoom} />
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  
+                  {/* Pickup Location */}
+                  <Marker position={[pickupLocation.lat, pickupLocation.lng]} icon={blueIcon}>
+                    <Popup>
+                      <div>
+                        <h3 className="font-bold">Pickup Location</h3>
+                        <p className="text-sm">Nairobi City Stadium</p>
+                      </div>
+                    </Popup>
+                  </Marker>
 
-                    {/* Delivery Location */}
-                    {deliveryLocation && (
-                      <Marker
-                        position={deliveryLocation}
-                        icon={{
-                          url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
-                        }}
-                        onClick={() => setSelectedMarker('delivery')}
-                      />
-                    )}
-
-                    {/* Rider Location */}
-                    {riderLocation && (
-                      <Marker
-                        position={riderLocation}
-                        icon={{
-                          url: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
-                          scaledSize: new window.google.maps.Size(40, 40)
-                        }}
-                        onClick={() => setSelectedMarker('rider')}
-                      />
-                    )}
-
-                    {/* Info Windows */}
-                    {selectedMarker === 'pickup' && (
-                      <InfoWindow
-                        position={pickupLocation}
-                        onCloseClick={() => setSelectedMarker(null)}
-                      >
-                        <div>
-                          <h3 className="font-bold">Pickup Location</h3>
-                          <p className="text-sm">Nairobi City Stadium</p>
-                        </div>
-                      </InfoWindow>
-                    )}
-
-                    {selectedMarker === 'delivery' && deliveryLocation && (
-                      <InfoWindow
-                        position={deliveryLocation}
-                        onCloseClick={() => setSelectedMarker(null)}
-                      >
+                  {/* Delivery Location */}
+                  {deliveryLocation && (
+                    <Marker position={[deliveryLocation.lat, deliveryLocation.lng]} icon={redIcon}>
+                      <Popup>
                         <div>
                           <h3 className="font-bold">Delivery Location</h3>
                           <p className="text-sm">{currentOrder.deliveryAddress}</p>
                         </div>
-                      </InfoWindow>
-                    )}
+                      </Popup>
+                    </Marker>
+                  )}
 
-                    {selectedMarker === 'rider' && riderLocation && (
-                      <InfoWindow
-                        position={riderLocation}
-                        onCloseClick={() => setSelectedMarker(null)}
-                      >
+                  {/* Rider Location */}
+                  {riderLocation && (
+                    <Marker position={[riderLocation.lat, riderLocation.lng]} icon={greenIcon}>
+                      <Popup>
                         <div>
                           <h3 className="font-bold">Rider Location</h3>
                           <p className="text-sm">Your order is here</p>
                         </div>
-                      </InfoWindow>
-                    )}
-                  </GoogleMap>
-                </LoadScript>
-              ) : (
-                <div className="bg-gray-100 rounded-lg p-12 text-center">
-                  <p className="text-gray-600 mb-4">Map tracking requires Google Maps API key</p>
-                  <p className="text-sm text-gray-500">
-                    Please set VITE_GOOGLE_MAPS_API_KEY in your environment variables
-                  </p>
-                </div>
-              )}
+                      </Popup>
+                    </Marker>
+                  )}
+                </MapContainer>
+              </div>
             </div>
           </div>
         </div>
@@ -308,4 +311,3 @@ export default function OrderTracking() {
     </div>
   )
 }
-

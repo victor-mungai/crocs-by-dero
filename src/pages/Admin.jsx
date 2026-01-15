@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useProducts, formatPrice } from '../context/ProductContext'
-import { Plus, Edit, Trash2, Eye, EyeOff, Save, X, Upload, Lock, Download, FileUp, AlertCircle } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, EyeOff, Save, X, Upload, Lock, Download, FileUp, AlertCircle, Package, Truck, User } from 'lucide-react'
 import { signInAdmin, signOutAdmin, onAuthStateChange, getCurrentUser } from '../firebase/authService'
 import { isFirebaseConfigured } from '../firebase/config'
+import { getAllOrders, subscribeToAllOrders, assignRider, getAllRiders } from '../firebase/ordersService'
 
 export default function Admin() {
   const { products, addProduct, updateProduct, deleteProduct, usingFirebase } = useProducts()
@@ -15,6 +16,10 @@ export default function Admin() {
   const [editingId, setEditingId] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [showDataWarning, setShowDataWarning] = useState(true)
+  const [orders, setOrders] = useState([])
+  const [riders, setRiders] = useState([])
+  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [showOrders, setShowOrders] = useState(true)
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -48,6 +53,69 @@ export default function Admin() {
       setIsLoading(false)
     }
   }, [])
+
+  // Load orders and riders when authenticated
+  useEffect(() => {
+    if (!isAuthenticated || !isFirebaseConfigured) return
+
+    const loadRiders = async () => {
+      try {
+        const ridersList = await getAllRiders()
+        setRiders(ridersList)
+      } catch (error) {
+        console.error('Error loading riders:', error)
+      }
+    }
+
+    loadRiders()
+
+    // Subscribe to orders
+    const unsubscribe = subscribeToAllOrders((ordersList) => {
+      setOrders(ordersList)
+    })
+
+    return () => unsubscribe()
+  }, [isAuthenticated])
+
+  const handleAssignRider = async (orderId, riderId) => {
+    if (!riderId) {
+      alert('Please select a rider')
+      return
+    }
+
+    try {
+      await assignRider(orderId, riderId)
+      alert('Rider assigned successfully!')
+      setSelectedOrder(null)
+    } catch (error) {
+      console.error('Error assigning rider:', error)
+      alert('Failed to assign rider. Please try again.')
+    }
+  }
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'placed': return 'bg-blue-100 text-blue-800'
+      case 'confirmed': return 'bg-yellow-100 text-yellow-800'
+      case 'dispatched': return 'bg-purple-100 text-purple-800'
+      case 'in_transit': return 'bg-indigo-100 text-indigo-800'
+      case 'delivered': return 'bg-green-100 text-green-800'
+      case 'cancelled': return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'placed': return 'Placed'
+      case 'confirmed': return 'Confirmed'
+      case 'dispatched': return 'Dispatched'
+      case 'in_transit': return 'In Transit'
+      case 'delivered': return 'Delivered'
+      case 'cancelled': return 'Cancelled'
+      default: return status
+    }
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -491,6 +559,19 @@ export default function Admin() {
               </div>
             </div>
             <div className="flex items-center space-x-4 flex-wrap gap-2">
+              <motion.button
+                onClick={() => setShowOrders(!showOrders)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center space-x-2 ${
+                  showOrders 
+                    ? 'bg-indigo-500 text-white' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <Package size={20} />
+                <span>Orders ({orders.length})</span>
+              </motion.button>
               <motion.button
                 onClick={() => {
                   setShowAddForm(true)
@@ -1042,6 +1123,173 @@ export default function Admin() {
             </>
           )}
         </AnimatePresence>
+
+        {/* Orders Section */}
+        {showOrders && (
+          <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center space-x-2">
+                <Package size={28} />
+                <span>Orders ({orders.length})</span>
+              </h2>
+            </div>
+            
+            {orders.length === 0 ? (
+              <div className="text-center py-12">
+                <Package size={48} className="mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-600">No orders yet</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Order ID</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Customer</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Items</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Total</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Rider</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.map((order) => (
+                      <motion.tr
+                        key={order.id}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="py-4 px-4">
+                          <div className="font-mono text-sm text-gray-600">#{order.id.slice(0, 8)}</div>
+                          <div className="text-xs text-gray-500">
+                            {order.createdAt?.toDate ? new Date(order.createdAt.toDate()).toLocaleDateString() : 'N/A'}
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="font-semibold text-gray-900">{order.customerName || 'N/A'}</div>
+                          <div className="text-sm text-gray-600">{order.customerPhone || 'N/A'}</div>
+                          {order.deliveryAddress && (
+                            <div className="text-xs text-gray-500 mt-1">{order.deliveryAddress}</div>
+                          )}
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="text-sm text-gray-700">
+                            {order.items?.length || 0} item(s)
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="font-semibold text-crocs-green">{formatPrice(order.total || 0)}</div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
+                            {getStatusText(order.status)}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          {order.riderId ? (
+                            <div className="flex items-center space-x-2">
+                              <User size={16} className="text-indigo-600" />
+                              <span className="text-sm text-gray-700">{order.riderId}</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-400">Not assigned</span>
+                          )}
+                        </td>
+                        <td className="py-4 px-4">
+                          {order.status === 'placed' && !order.riderId && (
+                            <button
+                              onClick={() => setSelectedOrder(order)}
+                              className="px-3 py-1 bg-crocs-green text-white rounded-lg text-sm font-semibold hover:bg-crocs-dark transition-colors flex items-center space-x-1"
+                            >
+                              <Truck size={16} />
+                              <span>Assign Rider</span>
+                            </button>
+                          )}
+                          {order.riderId && order.status === 'dispatched' && (
+                            <span className="text-sm text-gray-600">Assigned</span>
+                          )}
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Assign Rider Modal */}
+            {selectedOrder && (
+              <AnimatePresence>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                  onClick={() => setSelectedOrder(null)}
+                >
+                  <motion.div
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.9 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full"
+                  >
+                    <h3 className="text-xl font-bold text-gray-900 mb-4">Assign Rider</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Order: #{selectedOrder.id.slice(0, 8)}
+                    </p>
+                    
+                    {riders.length === 0 ? (
+                      <div className="mb-4 p-4 bg-yellow-50 rounded-lg">
+                        <p className="text-sm text-yellow-800">
+                          No riders available. Riders need to log in to the rider dashboard first.
+                        </p>
+                      </div>
+                    ) : (
+                      <select
+                        id="rider-select"
+                        className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-crocs-green focus:outline-none mb-4"
+                        defaultValue=""
+                      >
+                        <option value="">Select a rider...</option>
+                        {riders.map((rider) => (
+                          <option key={rider.id} value={rider.id}>
+                            {rider.name || rider.id} {rider.phone ? `(${rider.phone})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
+                    <div className="flex justify-end space-x-3">
+                      <button
+                        onClick={() => setSelectedOrder(null)}
+                        className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all"
+                      >
+                        Cancel
+                      </button>
+                      {riders.length > 0 && (
+                        <button
+                          onClick={() => {
+                            const select = document.getElementById('rider-select')
+                            if (select && select.value) {
+                              handleAssignRider(selectedOrder.id, select.value)
+                            } else {
+                              alert('Please select a rider')
+                            }
+                          }}
+                          className="px-4 py-2 bg-crocs-green text-white rounded-lg font-semibold hover:bg-crocs-dark transition-all"
+                        >
+                          Assign
+                        </button>
+                      )}
+                    </div>
+                  </motion.div>
+                </motion.div>
+              </AnimatePresence>
+            )}
+          </div>
+        )}
 
         {/* Data Storage Warning */}
         {showDataWarning && (

@@ -1,17 +1,60 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api'
-import { getRiderOrders, updateOrderStatus, updateRiderLocation, updateOrderRiderLocation, subscribeToRiderLocation } from '../firebase/ordersService'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import { getRiderOrders, updateOrderStatus, updateRiderLocation, updateOrderRiderLocation, subscribeToRiderLocation, createOrUpdateRider } from '../firebase/ordersService'
 import { formatPrice } from '../context/ProductContext'
-import { Package, MapPin, Play, CheckCircle, Navigation, LogOut, Loader } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { isRiderAuthorized } from '../firebase/riderAuthService'
+import { Package, MapPin, Play, CheckCircle, Navigation, LogOut, Loader, AlertCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import 'leaflet/dist/leaflet.css'
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY'
+// Fix for default marker icons in Leaflet with Vite
+if (L.Icon.Default.prototype._getIconUrl) {
+  delete L.Icon.Default.prototype._getIconUrl
+}
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+})
 
-const mapContainerStyle = {
-  width: '100%',
-  height: '400px',
-  borderRadius: '12px'
+// Custom icons
+const redIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+const blueIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+const greenIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [35, 55],
+  iconAnchor: [17, 55],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+})
+
+// Component to update map center when location changes
+function MapUpdater({ center, zoom }) {
+  const map = useMap()
+  useEffect(() => {
+    map.setView(center, zoom)
+  }, [map, center, zoom])
+  return null
 }
 
 const defaultCenter = {
@@ -21,32 +64,76 @@ const defaultCenter = {
 
 export default function RiderDashboard() {
   const navigate = useNavigate()
-  const [riderId, setRiderId] = useState(() => localStorage.getItem('rider-id') || '')
-  const [riderName, setRiderName] = useState(() => localStorage.getItem('rider-name') || '')
+  const { user, signIn, signOut, loading: authLoading } = useAuth()
+  const [riderId, setRiderId] = useState(null)
+  const [riderName, setRiderName] = useState('')
   const [orders, setOrders] = useState([])
   const [activeOrder, setActiveOrder] = useState(null)
   const [isTracking, setIsTracking] = useState(false)
   const [currentLocation, setCurrentLocation] = useState(null)
-  const [map, setMap] = useState(null)
+  const [isAuthorized, setIsAuthorized] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
   const watchIdRef = useRef(null)
   const locationUpdateInterval = useRef(null)
+  const currentLocationRef = useRef(null)
+
+  // Check rider authorization when user logs in
+  useEffect(() => {
+    const checkAuthorization = async () => {
+      if (!user) {
+        if (!authLoading) {
+          // Redirect to login if not authenticated
+          navigate('/login?redirect=/rider-dashboard')
+        }
+        setCheckingAuth(false)
+        return
+      }
+
+      try {
+        console.log('🔐 Checking authorization for user:', {
+          email: user.email,
+          uid: user.uid,
+          displayName: user.displayName
+        })
+        const authorized = await isRiderAuthorized(user.email)
+        console.log('🎯 Authorization result:', authorized)
+        setIsAuthorized(authorized)
+        
+        if (authorized && !riderId) {
+          const userId = user.uid
+          setRiderId(userId)
+          setRiderName(user.displayName || user.email || 'Rider')
+          
+          // Create or update rider profile
+          createOrUpdateRider(userId, {
+            name: user.displayName || user.email || 'Rider',
+            email: user.email,
+            phone: user.phoneNumber || '',
+            photoURL: user.photoURL || '',
+            isActive: true
+          }).catch(error => {
+            console.error('Error creating rider profile:', error)
+          })
+        }
+      } catch (error) {
+        console.error('❌ Error checking authorization:', error)
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          email: user?.email
+        })
+        setIsAuthorized(false)
+      } finally {
+        setCheckingAuth(false)
+      }
+    }
+
+    checkAuthorization()
+  }, [user, riderId, authLoading, navigate])
 
   useEffect(() => {
     if (!riderId) {
-      // Prompt for rider ID if not set
-      const id = prompt('Enter your Rider ID:')
-      if (id) {
-        setRiderId(id)
-        localStorage.setItem('rider-id', id)
-        const name = prompt('Enter your name:')
-        if (name) {
-          setRiderName(name)
-          localStorage.setItem('rider-name', name)
-        }
-      } else {
-        navigate('/')
-        return
-      }
+      return
     }
 
     loadOrders()
@@ -88,25 +175,45 @@ export default function RiderDashboard() {
     // Get initial location
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const location = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        }
-        setCurrentLocation(location)
-        
-        // Update rider location in Firebase
-        try {
-          await updateRiderLocation(riderId, location)
-          await updateOrderRiderLocation(orderId, location)
-        } catch (error) {
-          console.error('Error updating location:', error)
-        }
+      const location = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      }
+      currentLocationRef.current = location
+      setCurrentLocation(location)
+      
+      // Update rider location in Firebase
+      try {
+        await updateRiderLocation(riderId, location)
+        await updateOrderRiderLocation(orderId, location)
+      } catch (error) {
+        console.error('Error updating location:', error)
+      }
       },
       (error) => {
         console.error('Error getting location:', error)
         alert('Unable to get your location. Please enable location services.')
       }
     )
+
+    // Set up interval to update location every 5 seconds
+    if (locationUpdateInterval.current) {
+      clearInterval(locationUpdateInterval.current)
+    }
+    
+    locationUpdateInterval.current = setInterval(async () => {
+      const location = currentLocationRef.current
+      if (location) {
+        try {
+          await updateRiderLocation(riderId, location)
+          if (orderId) {
+            await updateOrderRiderLocation(orderId, location)
+          }
+        } catch (error) {
+          console.error('Error updating location:', error)
+        }
+      }
+    }, 5000)
 
     // Watch position for continuous updates
     watchIdRef.current = navigator.geolocation.watchPosition(
@@ -115,23 +222,18 @@ export default function RiderDashboard() {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         }
+        currentLocationRef.current = location
         setCurrentLocation(location)
         
-        // Update every 5 seconds
-        if (locationUpdateInterval.current) {
-          clearInterval(locationUpdateInterval.current)
-        }
-        
-        locationUpdateInterval.current = setInterval(async () => {
-          try {
-            await updateRiderLocation(riderId, location)
-            if (orderId) {
-              await updateOrderRiderLocation(orderId, location)
-            }
-          } catch (error) {
-            console.error('Error updating location:', error)
+        // Update immediately when location changes
+        try {
+          await updateRiderLocation(riderId, location)
+          if (orderId) {
+            await updateOrderRiderLocation(orderId, location)
           }
-        }, 5000)
+        } catch (error) {
+          console.error('Error updating location:', error)
+        }
       },
       (error) => {
         console.error('Error watching location:', error)
@@ -185,11 +287,10 @@ export default function RiderDashboard() {
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('Log out from rider dashboard?')) {
-      localStorage.removeItem('rider-id')
-      localStorage.removeItem('rider-name')
       stopLocationTracking()
+      await signOut()
       navigate('/')
     }
   }
@@ -197,6 +298,62 @@ export default function RiderDashboard() {
   const pendingOrders = orders.filter(o => o.status === 'dispatched' && o.riderId === riderId)
   const activeOrders = orders.filter(o => o.status === 'in_transit' && o.riderId === riderId)
   const completedOrders = orders.filter(o => o.status === 'delivered' && o.riderId === riderId)
+
+  // Determine map center
+  const mapCenter = currentLocation 
+    ? [currentLocation.lat, currentLocation.lng]
+    : activeOrder?.deliveryLocation
+    ? [activeOrder.deliveryLocation.lat, activeOrder.deliveryLocation.lng]
+    : [defaultCenter.lat, defaultCenter.lng]
+  
+  const mapZoom = currentLocation ? 15 : 12
+
+  // Show loading state while checking authorization
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader className="animate-spin mx-auto mb-4" size={48} />
+          <p className="text-gray-600">Checking authorization...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show unauthorized message if not authorized
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
+          <AlertCircle className="mx-auto mb-4 text-red-500" size={48} />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600 mb-4">
+            Your email ({user?.email}) is not authorized to access the Rider Dashboard.
+          </p>
+          <p className="text-sm text-gray-500 mb-2">
+            Please check:
+          </p>
+          <ul className="text-sm text-gray-500 mb-6 list-disc list-inside space-y-1">
+            <li>Your email is in the <code className="bg-gray-100 px-1 rounded">authorizedRiders</code> collection in Firestore</li>
+            <li>The email matches exactly (case-insensitive): <code className="bg-gray-100 px-1 rounded">{user?.email?.toLowerCase()}</code></li>
+            <li>Firestore security rules allow reading the collection</li>
+          </ul>
+          <p className="text-xs text-gray-400 mb-6">
+            Check the browser console (F12) for detailed error messages.
+          </p>
+          <button
+            onClick={() => {
+              signOut()
+              navigate('/')
+            }}
+            className="px-6 py-2 bg-crocs-green text-white rounded-lg font-semibold hover:bg-crocs-dark transition-all"
+          >
+            Go to Home
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -321,57 +478,56 @@ export default function RiderDashboard() {
                   </div>
                 )}
               </div>
-              {GOOGLE_MAPS_API_KEY && GOOGLE_MAPS_API_KEY !== 'YOUR_GOOGLE_MAPS_API_KEY' ? (
-                <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
-                  <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
-                    center={currentLocation || (activeOrder?.deliveryLocation) || defaultCenter}
-                    zoom={currentLocation ? 15 : 12}
-                    onLoad={(map) => setMap(map)}
-                  >
-                    {/* Current Location (Rider) */}
-                    {currentLocation && (
-                      <Marker
-                        position={currentLocation}
-                        icon={{
-                          url: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
-                          scaledSize: new window.google.maps.Size(50, 50)
-                        }}
-                        title="Your Location"
-                      />
-                    )}
+              <div className="rounded-lg overflow-hidden" style={{ height: '400px' }}>
+                <MapContainer
+                  center={mapCenter}
+                  zoom={mapZoom}
+                  style={{ height: '100%', width: '100%' }}
+                  scrollWheelZoom={true}
+                >
+                  <MapUpdater center={mapCenter} zoom={mapZoom} />
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  
+                  {/* Current Location (Rider) */}
+                  {currentLocation && (
+                    <Marker position={[currentLocation.lat, currentLocation.lng]} icon={greenIcon}>
+                      <Popup>
+                        <div>
+                          <h3 className="font-bold">Your Location</h3>
+                          <p className="text-sm">Rider position</p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
 
-                    {/* Pickup Location */}
-                    {activeOrder && (
-                      <Marker
-                        position={{ lat: -1.2921, lng: 36.8219 }}
-                        icon={{
-                          url: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                        }}
-                        title="Pickup Location"
-                      />
-                    )}
+                  {/* Pickup Location */}
+                  {activeOrder && (
+                    <Marker position={[defaultCenter.lat, defaultCenter.lng]} icon={blueIcon}>
+                      <Popup>
+                        <div>
+                          <h3 className="font-bold">Pickup Location</h3>
+                          <p className="text-sm">Nairobi City Stadium</p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
 
-                    {/* Delivery Location */}
-                    {activeOrder?.deliveryLocation && (
-                      <Marker
-                        position={activeOrder.deliveryLocation}
-                        icon={{
-                          url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
-                        }}
-                        title="Delivery Location"
-                      />
-                    )}
-                  </GoogleMap>
-                </LoadScript>
-              ) : (
-                <div className="bg-gray-100 rounded-lg p-12 text-center">
-                  <p className="text-gray-600 mb-4">Map requires Google Maps API key</p>
-                  <p className="text-sm text-gray-500">
-                    Set VITE_GOOGLE_MAPS_API_KEY in environment variables
-                  </p>
-                </div>
-              )}
+                  {/* Delivery Location */}
+                  {activeOrder?.deliveryLocation && (
+                    <Marker position={[activeOrder.deliveryLocation.lat, activeOrder.deliveryLocation.lng]} icon={redIcon}>
+                      <Popup>
+                        <div>
+                          <h3 className="font-bold">Delivery Location</h3>
+                          <p className="text-sm">{activeOrder.deliveryAddress}</p>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )}
+                </MapContainer>
+              </div>
             </div>
           </div>
         </div>
@@ -379,4 +535,3 @@ export default function RiderDashboard() {
     </div>
   )
 }
-

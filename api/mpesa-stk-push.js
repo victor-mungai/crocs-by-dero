@@ -53,8 +53,17 @@ export default async function handler(req, res) {
     const consumerKey = process.env.MPESA_CONSUMER_KEY
     const consumerSecret = process.env.MPESA_CONSUMER_SECRET
 
+    // Enhanced error logging
     if (!consumerKey || !consumerSecret) {
-      return res.status(500).json({ error: 'M-Pesa credentials not configured' })
+      console.error('M-Pesa credentials missing:', {
+        hasConsumerKey: !!consumerKey,
+        hasConsumerSecret: !!consumerSecret,
+        envKeys: Object.keys(process.env).filter(k => k.includes('MPESA'))
+      })
+      return res.status(500).json({ 
+        error: 'M-Pesa credentials not configured',
+        message: 'Please ensure MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET are set in Vercel environment variables'
+      })
     }
 
     // Get access token using Daraja OAuth
@@ -73,10 +82,20 @@ export default async function handler(req, res) {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text()
-      console.error('M-Pesa OAuth error:', errorText)
+      console.error('M-Pesa OAuth error:', {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        error: errorText,
+        authUrl: authUrl,
+        hasCredentials: !!(consumerKey && consumerSecret),
+        environment: process.env.MPESA_ENVIRONMENT || 'not set'
+      })
       return res.status(tokenResponse.status).json({ 
         error: 'Failed to get access token',
-        details: errorText 
+        details: errorText,
+        message: tokenResponse.status === 400 
+          ? 'Invalid credentials. Please check your Consumer Key and Secret in Vercel environment variables.'
+          : 'Authentication failed. Please check your M-Pesa credentials and environment settings.'
       })
     }
 

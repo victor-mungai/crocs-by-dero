@@ -247,3 +247,17 @@ export function subscribeToRiderLocation(riderId, callback) {
   })
 }
 
+// Get all riders
+export async function getAllRiders() {
+  if (!isFirebaseConfigured || !db) {
+    return []
+  }
+
+  const querySnapshot = await getDocs(collection(db, RIDERS_COLLECTION))
+  
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }))
+}
+

@@ -13,37 +13,42 @@ import RiderDashboard from './pages/RiderDashboard'
 import { ProductProvider } from './context/ProductContext'
 import { CartProvider } from './context/CartContext'
 import { OrderProvider } from './context/OrderContext'
+import { AuthProvider } from './context/AuthContext'
+import Login from './pages/Login'
 import './App.css'
 
 function App() {
   return (
-    <ProductProvider>
-      <CartProvider>
-        <OrderProvider>
-          <Router>
-            <div className="min-h-screen flex flex-col">
-              <Navbar />
-              <main className="flex-grow">
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/product/:id" element={<ProductDetail />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/checkout" element={<Checkout />} />
-                  <Route path="/track-order/:orderId" element={<OrderTracking />} />
-                  <Route path="/rider-dashboard" element={<RiderDashboard />} />
-                  {/* Hidden admin route - not in navigation */}
-                  <Route path="/manage-dashboard" element={<Admin />} />
-                  {/* Keep /admin for backward compatibility but robots.txt blocks it */}
-                  <Route path="/admin" element={<Admin />} />
-                </Routes>
-              </main>
-              <Footer />
-            </div>
-          </Router>
-        </OrderProvider>
-      </CartProvider>
-    </ProductProvider>
+    <AuthProvider>
+      <ProductProvider>
+        <CartProvider>
+          <OrderProvider>
+            <Router>
+              <div className="min-h-screen flex flex-col">
+                <Navbar />
+                <main className="flex-grow">
+                  <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/product/:id" element={<ProductDetail />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
+                    <Route path="/checkout" element={<Checkout />} />
+                    <Route path="/track-order/:orderId" element={<OrderTracking />} />
+                    <Route path="/rider-dashboard" element={<RiderDashboard />} />
+                    {/* Hidden admin route - not in navigation */}
+                    <Route path="/manage-dashboard" element={<Admin />} />
+                    {/* Keep /admin for backward compatibility but robots.txt blocks it */}
+                    <Route path="/admin" element={<Admin />} />
+                  </Routes>
+                </main>
+                <Footer />
+              </div>
+            </Router>
+          </OrderProvider>
+        </CartProvider>
+      </ProductProvider>
+    </AuthProvider>
   )
 }
 

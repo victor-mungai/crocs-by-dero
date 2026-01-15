@@ -4,12 +4,15 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider
 } from 'firebase/auth'
 import { db, isFirebaseConfigured } from './config'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 
 const auth = isFirebaseConfigured ? getAuth() : null
+const googleProvider = isFirebaseConfigured ? new GoogleAuthProvider() : null
 
 // Sign in with email and password
 export const signInAdmin = async (email, password) => {
@@ -77,6 +80,43 @@ export const createAdminUser = async (email, password) => {
       isAdmin: true
     })
 
+    return user
+  } catch (error) {
+    throw error
+  }
+}
+
+// Sign in with Google
+export const signInWithGoogle = async () => {
+  if (!auth || !googleProvider) {
+    throw new Error('Firebase is not configured')
+  }
+
+  try {
+    const result = await signInWithPopup(auth, googleProvider)
+    const user = result.user
+    
+    // Create or update user document in Firestore
+    const userRef = doc(db, 'users', user.uid)
+    const userSnap = await getDoc(userRef)
+    
+    if (!userSnap.exists()) {
+      // New user - create document
+      await setDoc(userRef, {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+      })
+    } else {
+      // Existing user - update last login
+      await setDoc(userRef, {
+        lastLogin: new Date().toISOString()
+      }, { merge: true })
+    }
+    
     return user
   } catch (error) {
     throw error
