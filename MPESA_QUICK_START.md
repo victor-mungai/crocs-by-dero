@@ -18,32 +18,34 @@
 ### Step 1: Get Your M-Pesa Credentials
 
 You already have:
-- ✅ Consumer Key: `7bC3y49xfxnBoPsdia2H3PuAKgqjJA6dWelwpTcfGAmIWyQI`
-- ✅ Consumer Secret: `OCadC4BTlZxhAGO18ZcNmNyOMsaRA9wIlxhYP8BnxqX5dyE1kyqTtyeHpmrW0Jrp`
+- ✅ Consumer Key: `WK45ADAtvR6BfjdcqACvhTeMbLWeGKZMjwTRbb75yI0uS36c`
+- ✅ Consumer Secret: `1kGBVka9J9C2Xyf3iG4Bcs2bcuNzwGgPlOfN77FhCrFTZGu5qDUpHenMof1DXA88`
 
 You still need:
 - ⚠️ **Shortcode** (Paybill/Till Number) - Get from M-Pesa Developer Portal
-- ⚠️ **Passkey** - Get from M-Pesa Developer Portal
+- ✅ **Passkey**: `1738`
 
-### Step 2: Set Environment Variables on Netlify
+### Step 2: Set Environment Variables on Vercel
 
-1. Go to **Netlify Dashboard** → Your Site → **Site settings** → **Environment variables**
-2. Click **Add variable** and add these:
+1. Go to **Vercel Dashboard** → Your Project → **Settings** → **Environment Variables**
+2. Click **Add** and add these variables:
 
 ```
-MPESA_CONSUMER_KEY = 7bC3y49xfxnBoPsdia2H3PuAKgqjJA6dWelwpTcfGAmIWyQI
-MPESA_CONSUMER_SECRET = OCadC4BTlZxhAGO18ZcNmNyOMsaRA9wIlxhYP8BnxqX5dyE1kyqTtyeHpmrW0Jrp
+MPESA_CONSUMER_KEY = WK45ADAtvR6BfjdcqACvhTeMbLWeGKZMjwTRbb75yI0uS36c
+MPESA_CONSUMER_SECRET = 1kGBVka9J9C2Xyf3iG4Bcs2bcuNzwGgPlOfN77FhCrFTZGu5qDUpHenMof1DXA88
 MPESA_SHORTCODE = YOUR_SHORTCODE
-MPESA_PASSKEY = YOUR_PASSKEY
+MPESA_PASSKEY = 1738
 MPESA_ENVIRONMENT = sandbox
 ```
 
-3. Replace `YOUR_SHORTCODE` and `YOUR_PASSKEY` with your actual values
+3. Replace `YOUR_SHORTCODE` with your actual shortcode (Passkey is: `1738`)
+4. Make sure to select the appropriate environments (Production, Preview, Development)
+5. Click **Save** and redeploy your application
 
 ### Step 3: Deploy
 
-1. Push your code to GitHub
-2. Netlify will automatically deploy
+1. Push your code to GitHub (if auto-deploy is enabled, Vercel will deploy automatically)
+2. Or manually trigger a deployment in Vercel dashboard
 3. Test the payment on your live site!
 
 ## 🧪 Testing
@@ -70,9 +72,10 @@ MPESA_ENVIRONMENT = sandbox
 
 When ready for real payments:
 
-1. Change `MPESA_ENVIRONMENT` to `production` in Netlify
+1. Change `MPESA_ENVIRONMENT` to `production` in Vercel environment variables
 2. Update callback URL in M-Pesa Developer Portal to your production URL
-3. Test with small real transactions first
+3. Redeploy your application
+4. Test with small real transactions first
 
 ## 🆘 Need Help?
 

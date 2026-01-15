@@ -8,12 +8,12 @@ This guide will help you set up M-Pesa payment integration for your Footwear Ken
 2. **M-Pesa App Credentials**: Consumer Key and Consumer Secret (you already have these)
 3. **Shortcode**: Your M-Pesa Paybill or Till Number
 4. **Passkey**: Your M-Pesa API passkey
-5. **Netlify Account**: For hosting the serverless functions
+5. **Vercel Account**: For hosting the serverless functions (or Netlify if using Netlify functions)
 
 ## 🔑 Your Current Credentials
 
-- **Consumer Key**: `7bC3y49xfxnBoPsdia2H3PuAKgqjJA6dWelwpTcfGAmIWyQI`
-- **Consumer Secret**: `OCadC4BTlZxhAGO18ZcNmNyOMsaRA9wIlxhYP8BnxqX5dyE1kyqTtyeHpmrW0Jrp`
+- **Consumer Key**: `WK45ADAtvR6BfjdcqACvhTeMbLWeGKZMjwTRbb75yI0uS36c`
+- **Consumer Secret**: `1kGBVka9J9C2Xyf3iG4Bcs2bcuNzwGgPlOfN77FhCrFTZGu5qDUpHenMof1DXA88`
 
 ## ⚙️ Required M-Pesa Settings
 
@@ -33,40 +33,46 @@ You'll need to get these from your M-Pesa Developer Portal:
    - **Shortcode** (Paybill/Till Number)
    - **Passkey** (Under API Credentials)
 
-### Step 2: Set Up Environment Variables on Netlify
+### Step 2: Set Up Environment Variables on Vercel
 
-1. Go to your Netlify site dashboard
-2. Navigate to **Site settings** → **Environment variables**
+1. Go to your Vercel project dashboard
+2. Navigate to **Settings** → **Environment Variables**
 3. Add the following variables:
 
 ```
-MPESA_CONSUMER_KEY=7bC3y49xfxnBoPsdia2H3PuAKgqjJA6dWelwpTcfGAmIWyQI
-MPESA_CONSUMER_SECRET=OCadC4BTlZxhAGO18ZcNmNyOMsaRA9wIlxhYP8BnxqX5dyE1kyqTtyeHpmrW0Jrp
+MPESA_CONSUMER_KEY=WK45ADAtvR6BfjdcqACvhTeMbLWeGKZMjwTRbb75yI0uS36c
+MPESA_CONSUMER_SECRET=1kGBVka9J9C2Xyf3iG4Bcs2bcuNzwGgPlOfN77FhCrFTZGu5qDUpHenMof1DXA88
 MPESA_SHORTCODE=YOUR_SHORTCODE_HERE
-MPESA_PASSKEY=YOUR_PASSKEY_HERE
+MPESA_PASSKEY=1738
 MPESA_ENVIRONMENT=sandbox
-MPESA_CALLBACK_URL=https://your-site.netlify.app/.netlify/functions/mpesa-callback
+MPESA_CALLBACK_URL=https://your-site.vercel.app/api/mpesa-callback
 ```
 
 **Important Notes:**
 - Replace `YOUR_SHORTCODE_HERE` with your actual shortcode
-- Replace `YOUR_PASSKEY_HERE` with your actual passkey
+- Passkey is: `1738`
 - For **Sandbox** testing, use `MPESA_ENVIRONMENT=sandbox`
 - For **Production**, use `MPESA_ENVIRONMENT=production`
-- Replace `your-site.netlify.app` with your actual Netlify site URL
+- Replace `your-site.vercel.app` with your actual Vercel site URL
+- Make sure to set these for **Production**, **Preview**, and **Development** environments if needed
 
 ### Step 3: Configure Callback URL in M-Pesa Portal
 
 1. In your M-Pesa Developer Portal, go to your app settings
 2. Set the **Callback URL** to:
    ```
-   https://your-site.netlify.app/.netlify/functions/mpesa-callback
+   https://your-site.vercel.app/api/mpesa-callback
    ```
 3. Save the settings
 
+**Note:** If you're using Netlify instead of Vercel, use:
+   ```
+   https://your-site.netlify.app/.netlify/functions/mpesa-callback
+   ```
+
 ### Step 4: Test the Integration
 
-1. Deploy your site to Netlify
+1. Deploy your site to Vercel (or push to GitHub if auto-deploy is enabled)
 2. Go to the checkout page
 3. Select "Pay with M-Pesa"
 4. Enter a test phone number (for sandbox, use the test numbers from M-Pesa)
@@ -84,7 +90,7 @@ For sandbox testing, you can use these test numbers:
 When ready for production:
 
 1. **Switch to Production Environment**:
-   - Update `MPESA_ENVIRONMENT=production` in Netlify environment variables
+   - Update `MPESA_ENVIRONMENT=production` in Vercel environment variables
    - Update the callback URL in M-Pesa Portal to your production URL
 
 2. **Update API URLs**:
@@ -108,7 +114,8 @@ When ready for production:
 
 ### Issue: "Failed to get access token"
 - **Solution**: Check that `MPESA_CONSUMER_KEY` and `MPESA_CONSUMER_SECRET` are correct
-- Verify they're set in Netlify environment variables
+- Verify they're set in Vercel environment variables
+- Make sure you've redeployed after adding the environment variables
 
 ### Issue: "STK Push failed"
 - **Solution**: 
@@ -118,27 +125,28 @@ When ready for production:
 
 ### Issue: "Payment not received"
 - **Solution**:
-  - Check Netlify function logs for errors
+  - Check Vercel function logs for errors (Vercel Dashboard → Functions → View logs)
   - Verify callback URL is accessible
   - Check M-Pesa transaction history in Developer Portal
 
 ### Issue: Functions not working locally
 - **Solution**: 
-  - Install Netlify CLI: `npm install -g netlify-cli`
-  - Run: `netlify dev` to test functions locally
-  - Functions will be available at `http://localhost:8888/.netlify/functions/`
+  - Install Vercel CLI: `npm install -g vercel`
+  - Run: `vercel dev` to test functions locally
+  - Functions will be available at `http://localhost:3000/api/`
+  - Or use Netlify CLI if using Netlify: `npm install -g netlify-cli` then `netlify dev`
 
 ## 📞 Support
 
 If you encounter issues:
-1. Check Netlify function logs: **Site dashboard** → **Functions** → **View logs**
+1. Check Vercel function logs: **Project dashboard** → **Deployments** → **Functions** → **View logs**
 2. Check M-Pesa Developer Portal for transaction status
-3. Verify all environment variables are set correctly
+3. Verify all environment variables are set correctly in Vercel
 
 ## 🔐 Security Notes
 
 - **Never commit credentials to Git**: They're already in `.gitignore`
-- **Use environment variables**: Always use Netlify environment variables for secrets
+- **Use environment variables**: Always use Vercel (or Netlify) environment variables for secrets
 - **Rotate credentials**: If credentials are compromised, regenerate them in M-Pesa Portal
 
 ## ✅ Checklist
@@ -146,7 +154,7 @@ If you encounter issues:
 - [ ] M-Pesa Developer Account created
 - [ ] Consumer Key and Secret obtained
 - [ ] Shortcode and Passkey obtained
-- [ ] Environment variables set in Netlify
+- [ ] Environment variables set in Vercel
 - [ ] Callback URL configured in M-Pesa Portal
 - [ ] Tested with sandbox environment
 - [ ] Ready for production (if applicable)
