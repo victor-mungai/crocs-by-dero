@@ -104,6 +104,7 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [riderLocation, setRiderLocation] = useState(null)
   const [error, setError] = useState(null)
+  const [hasLoaded, setHasLoaded] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -112,17 +113,35 @@ export default function Orders() {
       const identifier = user.email || user.phoneNumber
       if (identifier) {
         setError(null)
-        fetchCustomerOrders(identifier).catch(error => {
-          console.error('Error fetching orders:', error)
-          setError('Failed to load orders. Please try again.')
-        })
+        setHasLoaded(false)
+        fetchCustomerOrders(identifier)
+          .then(() => {
+            setHasLoaded(true)
+          })
+          .catch(error => {
+            console.error('Error fetching orders:', error)
+            setError('Failed to load orders. Please try again.')
+            setHasLoaded(true)
+          })
       } else {
         setError('Unable to identify user. Please ensure you are logged in.')
+        setHasLoaded(true)
       }
     } else {
       setError('Please log in to view your orders.')
+      setHasLoaded(true)
     }
   }, [user, fetchCustomerOrders])
+
+  // Timeout fallback - if loading takes too long, show no orders
+  useEffect(() => {
+    if (loading && !hasLoaded) {
+      const timeout = setTimeout(() => {
+        setHasLoaded(true)
+      }, 5000) // 5 second timeout
+      return () => clearTimeout(timeout)
+    }
+  }, [loading, hasLoaded])
 
   // Subscribe to selected order updates
   useEffect(() => {
@@ -154,7 +173,8 @@ export default function Orders() {
     return () => unsubscribe()
   }, [selectedOrder?.riderId, selectedOrder?.status])
 
-  if (loading) {
+  // Show loading only if we haven't loaded yet and are still loading
+  if (loading && !hasLoaded) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -204,7 +224,7 @@ export default function Orders() {
               </button>
             )}
           </div>
-        ) : orders.length === 0 && !loading ? (
+        ) : orders.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
             <Package size={64} className="mx-auto text-gray-300 mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">No Orders Yet</h2>
