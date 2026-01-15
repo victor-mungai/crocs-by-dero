@@ -2,18 +2,18 @@
 import { initializeApp } from 'firebase/app'
 import { getFirestore } from 'firebase/firestore'
 
-// Your Firebase configuration
+// Your Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyCUilWtfkmHS6xkxfY5fgA_Jc8w8VphpJU",
-  authDomain: "crocs-by-dero.firebaseapp.com",
-  projectId: "crocs-by-dero",
-  storageBucket: "crocs-by-dero.firebasestorage.app",
-  messagingSenderId: "610664718482",
-  appId: "1:610664718482:web:22b987814f1fa8089a064b"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 }
 
 // Check if Firebase is configured
-const isFirebaseConfigured = true
+const isFirebaseConfigured = !!firebaseConfig.apiKey
 
 // Initialize Firebase only if configured
 let app = null

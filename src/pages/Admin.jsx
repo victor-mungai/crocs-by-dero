@@ -1406,7 +1406,7 @@ export default function Admin() {
                       </div>
                     </td>
                     <td className="py-4 px-4">
-                      <div className="flex items-center space-x-2">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                         <button
                           onClick={() => handleEdit(product)}
                           className="p-2 text-crocs-green hover:bg-crocs-light rounded-lg transition-colors"

@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@react-google-maps/api": "^2.20.8",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
     "firebase": "^10.7.1",
     "framer-motion": "^10.16.16",
     "leaflet": "^1.9.4",

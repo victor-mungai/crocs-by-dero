@@ -28,14 +28,14 @@ export default function Contact() {
   }
 
   return (
-    <div className="page-transition min-h-screen bg-gray-50">
+    <div className="page-transition min-h-screen bg-white">
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-crocs-green to-crocs-dark text-white py-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <section className="bg-black text-white py-24 md:py-32">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-bold mb-6"
+            className="text-5xl md:text-7xl font-bold mb-6 tracking-tight"
           >
             Get In Touch
           </motion.h1>
@@ -43,7 +43,7 @@ export default function Contact() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-xl text-white/90"
+            className="text-xl text-gray-400"
           >
             We'd love to hear from you! Reach out with any questions or inquiries.
           </motion.p>
@@ -51,9 +51,9 @@ export default function Contact() {
       </section>
 
       {/* Contact Section */}
-      <section className="py-16">
+      <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             {/* Contact Info */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
@@ -61,67 +61,67 @@ export default function Contact() {
               className="space-y-8"
             >
               <div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">Contact Information</h2>
-                <p className="text-gray-600 mb-8">
+                <h2 className="text-3xl font-bold text-black mb-6">Contact Information</h2>
+                <p className="text-gray-500">
                   Have a question? We're here to help! Choose your preferred method of contact.
                 </p>
               </div>
 
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <a
                   href="tel:+254712080372"
-                  className="flex items-center space-x-4 p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 group"
+                  className="flex items-center space-x-4 p-4 border border-gray-100 hover:border-black transition-colors group"
                 >
-                  <div className="p-3 bg-crocs-green/10 rounded-lg group-hover:bg-crocs-green transition-colors">
-                    <Phone className="text-crocs-green" size={24} />
+                  <div className="p-3 bg-gray-50 group-hover:bg-black transition-colors">
+                    <Phone className="text-black group-hover:text-white" size={20} strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Phone</p>
-                    <p className="text-gray-600">0712080372</p>
+                    <p className="font-medium text-black">Phone</p>
+                    <p className="text-gray-500 text-sm">0712080372</p>
                   </div>
                 </a>
 
                 <a
                   href="mailto:derroreacts@gmail.com"
-                  className="flex items-center space-x-4 p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 group"
+                  className="flex items-center space-x-4 p-4 border border-gray-100 hover:border-black transition-colors group"
                 >
-                  <div className="p-3 bg-crocs-green/10 rounded-lg group-hover:bg-crocs-green transition-colors">
-                    <Mail className="text-crocs-green" size={24} />
+                  <div className="p-3 bg-gray-50 group-hover:bg-black transition-colors">
+                    <Mail className="text-black group-hover:text-white" size={20} strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Email</p>
-                    <p className="text-gray-600">derroreacts@gmail.com</p>
+                    <p className="font-medium text-black">Email</p>
+                    <p className="text-gray-500 text-sm">derroreacts@gmail.com</p>
                   </div>
                 </a>
 
                 <button
                   onClick={handleWhatsApp}
-                  className="w-full flex items-center space-x-4 p-4 bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 group"
+                  className="w-full flex items-center space-x-4 p-4 border border-gray-100 hover:border-black transition-colors group"
                 >
-                  <div className="p-3 bg-green-500/10 rounded-lg group-hover:bg-green-500 transition-colors">
-                    <MessageCircle className="text-green-500" size={24} />
+                  <div className="p-3 bg-gray-50 group-hover:bg-black transition-colors">
+                    <MessageCircle className="text-black group-hover:text-white" size={20} strokeWidth={1.5} />
                   </div>
                   <div className="text-left">
-                    <p className="font-semibold text-gray-900">WhatsApp</p>
-                    <p className="text-gray-600">Chat with us instantly</p>
+                    <p className="font-medium text-black">WhatsApp</p>
+                    <p className="text-gray-500 text-sm">Chat with us instantly</p>
                   </div>
                 </button>
 
-                <div className="flex items-center space-x-4 p-4 bg-white rounded-xl shadow-md">
-                  <div className="p-3 bg-crocs-green/10 rounded-lg">
-                    <MapPin className="text-crocs-green" size={24} />
+                <div className="flex items-center space-x-4 p-4 border border-gray-100">
+                  <div className="p-3 bg-gray-50">
+                    <MapPin className="text-black" size={20} strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">Location</p>
-                    <p className="text-gray-600">Available for delivery nationwide</p>
+                    <p className="font-medium text-black">Location</p>
+                    <p className="text-gray-500 text-sm">Available for delivery nationwide</p>
                   </div>
                 </div>
               </div>
 
               {/* Social Media */}
               <div className="pt-6">
-                <h3 className="font-semibold text-lg mb-4">Follow Us</h3>
-                <div className="flex space-x-4">
+                <h3 className="font-medium text-sm tracking-wide mb-4">FOLLOW US</h3>
+                <div className="flex space-x-3">
                   {[
                     { icon: Instagram, url: 'https://instagram.com/footwearkenya', name: 'Instagram' },
                     { icon: Instagram, url: 'https://instagram.com/derroreacts', name: 'Owner Instagram' },
@@ -131,10 +131,10 @@ export default function Contact() {
                       href={social.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-3 bg-white rounded-lg shadow-md hover:shadow-lg hover:bg-crocs-green hover:text-white transition-all duration-200"
+                      className="p-3 border border-gray-200 hover:border-black hover:bg-black hover:text-white transition-colors"
                       aria-label={social.name}
                     >
-                      <social.icon size={24} />
+                      <social.icon size={20} strokeWidth={1.5} />
                     </a>
                   ))}
                 </div>
@@ -145,12 +145,12 @@ export default function Contact() {
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-2xl shadow-lg p-8"
+              className="border border-gray-100 p-8"
             >
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
+              <h2 className="text-2xl font-bold text-black mb-6">Send us a Message</h2>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor="name" className="block text-sm font-medium text-black mb-2">
                     Name
                   </label>
                   <input
@@ -159,13 +159,13 @@ export default function Contact() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-crocs-green focus:outline-none transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors text-sm"
                     placeholder="Your name"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-black mb-2">
                     Email
                   </label>
                   <input
@@ -174,13 +174,13 @@ export default function Contact() {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-crocs-green focus:outline-none transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors text-sm"
                     placeholder="your.email@example.com"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="message" className="block text-sm font-semibold text-gray-700 mb-2">
+                  <label htmlFor="message" className="block text-sm font-medium text-black mb-2">
                     Message
                   </label>
                   <textarea
@@ -189,7 +189,7 @@ export default function Contact() {
                     onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                     required
                     rows={6}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-crocs-green focus:outline-none transition-all resize-none"
+                    className="w-full px-4 py-3 border border-gray-200 focus:border-black focus:outline-none transition-colors resize-none text-sm"
                     placeholder="Your message..."
                   />
                 </div>
@@ -198,17 +198,17 @@ export default function Contact() {
                   type="submit"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full py-4 bg-crocs-green text-white rounded-lg font-semibold text-lg shadow-lg hover:bg-crocs-dark transition-all duration-200 flex items-center justify-center space-x-2"
+                  className="w-full py-4 bg-black text-white font-medium text-sm tracking-wide hover:bg-gray-900 transition-colors flex items-center justify-center space-x-2"
                 >
                   {submitted ? (
                     <>
                       <span>✓</span>
-                      <span>Message Sent!</span>
+                      <span>MESSAGE SENT!</span>
                     </>
                   ) : (
                     <>
-                      <Send size={20} />
-                      <span>Send Message</span>
+                      <Send size={18} strokeWidth={1.5} />
+                      <span>SEND MESSAGE</span>
                     </>
                   )}
                 </motion.button>

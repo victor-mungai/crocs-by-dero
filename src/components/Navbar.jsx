@@ -25,48 +25,48 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-white shadow-md sticky top-0 z-50 glass-effect">
+    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-20">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
+          <Link to="/" className="flex items-center group">
             <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="text-2xl font-bold bg-gradient-to-r from-crocs-green to-crocs-yellow bg-clip-text text-transparent"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="text-2xl font-bold tracking-tight text-black"
             >
-              👟 Footwear Kenya
+              FOOTWEAR KENYA
             </motion.div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-1">
             <Link
               to="/"
-              className={`px-3 py-2 rounded-lg transition-all duration-200 ${
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
                 isActive('/') 
-                  ? 'text-crocs-green font-semibold bg-crocs-light' 
-                  : 'text-gray-700 hover:text-crocs-green hover:bg-gray-50'
+                  ? 'text-black' 
+                  : 'text-gray-500 hover:text-black'
               }`}
             >
               Home
             </Link>
             <Link
               to="/about"
-              className={`px-3 py-2 rounded-lg transition-all duration-200 ${
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
                 isActive('/about') 
-                  ? 'text-crocs-green font-semibold bg-crocs-light' 
-                  : 'text-gray-700 hover:text-crocs-green hover:bg-gray-50'
+                  ? 'text-black' 
+                  : 'text-gray-500 hover:text-black'
               }`}
             >
               About
             </Link>
             <Link
               to="/contact"
-              className={`px-3 py-2 rounded-lg transition-all duration-200 ${
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
                 isActive('/contact') 
-                  ? 'text-crocs-green font-semibold bg-crocs-light' 
-                  : 'text-gray-700 hover:text-crocs-green hover:bg-gray-50'
+                  ? 'text-black' 
+                  : 'text-gray-500 hover:text-black'
               }`}
             >
               Contact
@@ -112,13 +112,17 @@ export default function Navbar() {
             )}
             <Link
               to="/checkout"
-              className="relative px-4 py-2 text-gray-700 hover:text-crocs-green transition-all duration-200"
+              className="relative ml-4 p-2 text-black hover:bg-gray-50 rounded-full transition-colors"
             >
-              <ShoppingBag size={24} />
+              <ShoppingBag size={20} strokeWidth={1.5} />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-crocs-green text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <motion.span 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-1 -right-1 bg-black text-white text-[10px] rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-medium px-1"
+                >
                   {cartCount}
-                </span>
+                </motion.span>
               )}
             </Link>
           </div>
@@ -126,9 +130,9 @@ export default function Navbar() {
           {/* Mobile menu button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100"
+            className="md:hidden p-2 text-black hover:bg-gray-50 rounded-lg transition-colors"
           >
-            {isOpen ? <X size={24} /> : <Menu size={24} />}
+            {isOpen ? <X size={24} strokeWidth={1.5} /> : <Menu size={24} strokeWidth={1.5} />}
           </button>
         </div>
       </div>
@@ -140,14 +144,14 @@ export default function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-gray-200"
+            className="md:hidden border-t border-gray-100 bg-white"
           >
-            <div className="px-4 py-4 space-y-2">
+            <div className="px-4 py-4 space-y-1">
               <Link
                 to="/"
                 onClick={() => setIsOpen(false)}
-                className={`block px-3 py-2 rounded-lg ${
-                  isActive('/') ? 'text-crocs-green font-semibold bg-crocs-light' : 'text-gray-700'
+                className={`block px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  isActive('/') ? 'text-black bg-gray-50' : 'text-gray-500 hover:text-black hover:bg-gray-50'
                 }`}
               >
                 Home
@@ -155,8 +159,8 @@ export default function Navbar() {
               <Link
                 to="/about"
                 onClick={() => setIsOpen(false)}
-                className={`block px-3 py-2 rounded-lg ${
-                  isActive('/about') ? 'text-crocs-green font-semibold bg-crocs-light' : 'text-gray-700'
+                className={`block px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  isActive('/about') ? 'text-black bg-gray-50' : 'text-gray-500 hover:text-black hover:bg-gray-50'
                 }`}
               >
                 About
@@ -164,8 +168,8 @@ export default function Navbar() {
               <Link
                 to="/contact"
                 onClick={() => setIsOpen(false)}
-                className={`block px-3 py-2 rounded-lg ${
-                  isActive('/contact') ? 'text-crocs-green font-semibold bg-crocs-light' : 'text-gray-700'
+                className={`block px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                  isActive('/contact') ? 'text-black bg-gray-50' : 'text-gray-500 hover:text-black hover:bg-gray-50'
                 }`}
               >
                 Contact
@@ -215,11 +219,11 @@ export default function Navbar() {
               <Link
                 to="/checkout"
                 onClick={() => setIsOpen(false)}
-                className="block px-3 py-2 rounded-lg text-gray-700 flex items-center justify-between"
+                className="flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-500 hover:text-black hover:bg-gray-50 rounded-lg transition-colors"
               >
                 <span>Cart</span>
                 {cartCount > 0 && (
-                  <span className="bg-crocs-green text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <span className="bg-black text-white text-[10px] rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-medium px-1">
                     {cartCount}
                   </span>
                 )}
