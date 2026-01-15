@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { getPickupLocation } from '../utils/deliveryUtils'
 import { formatPrice } from '../context/ProductContext'
 import { subscribeToOrder, subscribeToRiderLocation } from '../firebase/ordersService'
-import { ArrowLeft, Package, MapPin, Clock, CheckCircle, Truck, Loader, Bike } from 'lucide-react'
+import { ArrowLeft, Package, MapPin, Clock, CheckCircle, Truck, Loader, Bike, XCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import 'leaflet/dist/leaflet.css'
 
@@ -103,13 +103,24 @@ export default function Orders() {
   const { fetchCustomerOrders, orders, loading } = useOrder()
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [riderLocation, setRiderLocation] = useState(null)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (user?.phoneNumber) {
-      fetchCustomerOrders(user.phoneNumber)
-    } else if (user?.email) {
-      // Try email if phone not available
-      fetchCustomerOrders(user.email)
+    if (user) {
+      // Try to fetch orders by email first (for Google auth users)
+      // Then try by phone if email doesn't work
+      const identifier = user.email || user.phoneNumber
+      if (identifier) {
+        setError(null)
+        fetchCustomerOrders(identifier).catch(error => {
+          console.error('Error fetching orders:', error)
+          setError('Failed to load orders. Please try again.')
+        })
+      } else {
+        setError('Unable to identify user. Please ensure you are logged in.')
+      }
+    } else {
+      setError('Please log in to view your orders.')
     }
   }, [user, fetchCustomerOrders])
 
@@ -129,9 +140,9 @@ export default function Orders() {
     return () => unsubscribe()
   }, [selectedOrder?.id])
 
-  // Subscribe to rider location if order is dispatched
+  // Subscribe to rider location if order is dispatched or in_transit
   useEffect(() => {
-    if (!selectedOrder?.riderId || selectedOrder.status !== 'dispatched') {
+    if (!selectedOrder?.riderId || (selectedOrder.status !== 'dispatched' && selectedOrder.status !== 'in_transit')) {
       setRiderLocation(null)
       return
     }
@@ -157,7 +168,8 @@ export default function Orders() {
   const pickupLocation = getPickupLocation()
   const showMap = selectedOrder && 
     (selectedOrder.status === 'dispatched' || selectedOrder.status === 'in_transit') && 
-    selectedOrder.riderId
+    selectedOrder.riderId &&
+    (riderLocation || selectedOrder.riderLocation)
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -178,7 +190,21 @@ export default function Orders() {
           <p className="text-gray-600 mt-2">View and track your orders</p>
         </div>
 
-        {orders.length === 0 ? (
+        {error ? (
+          <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+            <XCircle size={64} className="mx-auto text-red-300 mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Error Loading Orders</h2>
+            <p className="text-gray-600 mb-6">{error}</p>
+            {!user && (
+              <button
+                onClick={() => navigate('/login')}
+                className="px-6 py-3 bg-crocs-green text-white rounded-lg font-semibold hover:bg-crocs-dark transition-colors"
+              >
+                Sign In
+              </button>
+            )}
+          </div>
+        ) : orders.length === 0 && !loading ? (
           <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
             <Package size={64} className="mx-auto text-gray-300 mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">No Orders Yet</h2>

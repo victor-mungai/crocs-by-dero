@@ -6,6 +6,7 @@ import L from 'leaflet'
 import { useCart } from '../context/CartContext'
 import { useProducts, formatPrice } from '../context/ProductContext'
 import { useOrder } from '../context/OrderContext'
+import { useAuth } from '../context/AuthContext'
 import { calculateDeliveryFee, getPickupLocation, formatDistance, calculateDistance } from '../utils/deliveryUtils'
 import { Trash2, Plus, Minus, ArrowLeft, CreditCard, Loader, CheckCircle, XCircle, Phone, MapPin, Package } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
@@ -44,6 +45,8 @@ export default function Checkout() {
   const { cart, removeFromCart, updateQuantity, clearCart, getCartTotal } = useCart()
   const { getCharms } = useProducts()
   const { placeOrder } = useOrder()
+  const { user } = useAuth()
+  const { user } = useAuth()
   const [suggestedCharms, setSuggestedCharms] = useState([])
   const [deliveryType, setDeliveryType] = useState('delivery') // 'delivery' or 'collect'
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -237,6 +240,7 @@ export default function Checkout() {
         })),
         customerName: customerName.trim(),
         customerPhone: cleanPhone,
+        customerEmail: user?.email || null, // Store email for order lookup
         deliveryType,
         deliveryAddress: deliveryType === 'delivery' ? deliveryAddress.trim() : null,
         deliveryLocation: deliveryType === 'delivery' ? deliveryLocation : null,

@@ -123,21 +123,46 @@ export async function getAllOrders() {
 
 // Get orders by customer phone/email
 export async function getCustomerOrders(customerId) {
-  if (!isFirebaseConfigured || !db) {
+  if (!isFirebaseConfigured || !db || !customerId) {
     return []
   }
 
-  const q = query(
-    collection(db, ORDERS_COLLECTION),
-    where('customerPhone', '==', customerId),
-    orderBy('createdAt', 'desc')
-  )
-  const querySnapshot = await getDocs(q)
-  
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }))
+  // Try to get orders by phone first
+  try {
+    const phoneQuery = query(
+      collection(db, ORDERS_COLLECTION),
+      where('customerPhone', '==', customerId),
+      orderBy('createdAt', 'desc')
+    )
+    const phoneSnapshot = await getDocs(phoneQuery)
+    
+    if (!phoneSnapshot.empty) {
+      return phoneSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }))
+    }
+  } catch (error) {
+    console.error('Error querying by phone:', error)
+  }
+
+  // If no results, try by email
+  try {
+    const emailQuery = query(
+      collection(db, ORDERS_COLLECTION),
+      where('customerEmail', '==', customerId),
+      orderBy('createdAt', 'desc')
+    )
+    const emailSnapshot = await getDocs(emailQuery)
+    
+    return emailSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }))
+  } catch (error) {
+    console.error('Error querying by email:', error)
+    return []
+  }
 }
 
 // Get orders assigned to rider
