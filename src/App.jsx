@@ -9,6 +9,7 @@ import Contact from './pages/Contact'
 import Admin from './pages/Admin'
 import Checkout from './pages/Checkout'
 import OrderTracking from './pages/OrderTracking'
+import Orders from './pages/Orders'
 import RiderDashboard from './pages/RiderDashboard'
 import { ProductProvider } from './context/ProductContext'
 import { CartProvider } from './context/CartContext'
@@ -34,6 +35,7 @@ function App() {
                     <Route path="/about" element={<About />} />
                     <Route path="/contact" element={<Contact />} />
                     <Route path="/checkout" element={<Checkout />} />
+                    <Route path="/orders" element={<Orders />} />
                     <Route path="/track-order/:orderId" element={<OrderTracking />} />
                     <Route path="/rider-dashboard" element={<RiderDashboard />} />
                     {/* Hidden admin route - not in navigation */}

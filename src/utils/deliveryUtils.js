@@ -1,9 +1,10 @@
 // Delivery utilities for distance calculation and cost
 
-// Nairobi City Stadium coordinates (pickup location)
+// Dispatch location coordinates (goods are dispatched from here)
+// 1°17'47.7"S 36°52'24.6"E
 const PICKUP_LOCATION = {
-  lat: -1.2921,
-  lng: 36.8219
+  lat: -1.296583,  // 1°17'47.7"S converted to decimal degrees
+  lng: 36.8735     // 36°52'24.6"E converted to decimal degrees
 }
 
 // Calculate distance between two coordinates using Haversine formula

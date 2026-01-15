@@ -18,23 +18,28 @@
 |--------------|-------|-------------|
 | `MPESA_CONSUMER_KEY` | `WK45ADAtvR6BfjdcqACvhTeMbLWeGKZMjwTRbb75yI0uS36c` | Production, Preview, Development |
 | `MPESA_CONSUMER_SECRET` | `1kGBVka9J9C2Xyf3iG4Bcs2bcuNzwGgPlOfN77FhCrFTZGu5qDUpHenMof1DXA88` | Production, Preview, Development |
-| `MPESA_SHORTCODE` | `YOUR_SHORTCODE` | Production, Preview, Development |
+| `MPESA_SHORTCODE` | `6151127` | Production, Preview, Development |
 | `MPESA_PASSKEY` | `1738` | Production, Preview, Development |
 | `MPESA_ENVIRONMENT` | `sandbox` (or `production`) | Production, Preview, Development |
 
 **Important:**
-- Replace `YOUR_SHORTCODE` with your actual M-Pesa shortcode
+- Shortcode is: `6151127`
 - Passkey is: `1738`
 - Select all three environments (Production, Preview, Development) when adding each variable
 
-### Step 2: Redeploy Your Application
+### Step 2: Redeploy Your Application ⚠️ REQUIRED
 
-After adding the environment variables:
+**IMPORTANT:** Environment variables are only loaded during deployment. If you added variables after the last deployment, you MUST manually redeploy:
 
-1. Go to **Deployments** tab
-2. Click the **⋯** (three dots) on the latest deployment
-3. Click **Redeploy**
-4. Or push a new commit to trigger automatic deployment
+1. Go to **Deployments** tab in Vercel Dashboard
+2. Find the latest deployment
+3. Click the **⋯** (three dots) menu on the right side of the deployment
+4. Click **Redeploy**
+5. Select **Use existing Build Cache** (optional, but faster)
+6. Click **Redeploy**
+7. Wait for the deployment to complete (usually 1-2 minutes)
+
+**Alternative:** You can also push a new commit to trigger automatic deployment, but redeploying is faster if you just added environment variables.
 
 ### Step 3: Configure Callback URL in M-Pesa Portal
 

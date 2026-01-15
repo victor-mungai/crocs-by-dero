@@ -503,13 +503,13 @@ export default function RiderDashboard() {
                     </Marker>
                   )}
 
-                  {/* Pickup Location */}
+                  {/* Dispatch Location */}
                   {activeOrder && (
                     <Marker position={[defaultCenter.lat, defaultCenter.lng]} icon={blueIcon}>
                       <Popup>
                         <div>
-                          <h3 className="font-bold">Pickup Location</h3>
-                          <p className="text-sm">Nairobi City Stadium</p>
+                          <h3 className="font-bold">Dispatch Location</h3>
+                          <p className="text-sm">1°17'47.7"S 36°52'24.6"E</p>
                         </div>
                       </Popup>
                     </Marker>

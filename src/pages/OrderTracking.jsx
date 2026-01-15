@@ -180,10 +180,10 @@ export default function OrderTracking() {
                   <h3 className="font-semibold text-gray-900 mb-2">Pickup Information</h3>
                   <p className="text-sm text-gray-600">
                     <MapPin size={16} className="inline mr-1" />
-                    Nairobi City Stadium
+                    Dispatch Location (1°17'47.7"S 36°52'24.6"E)
                   </p>
                   <p className="text-sm text-gray-600 mt-2">
-                    Please collect your order from our pickup location. We'll notify you when it's ready.
+                    Please collect your order from our dispatch location. We'll notify you when it's ready.
                   </p>
                 </div>
               )}
@@ -269,12 +269,12 @@ export default function OrderTracking() {
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   />
                   
-                  {/* Pickup Location */}
+                  {/* Dispatch Location */}
                   <Marker position={[pickupLocation.lat, pickupLocation.lng]} icon={blueIcon}>
                     <Popup>
                       <div>
-                        <h3 className="font-bold">Pickup Location</h3>
-                        <p className="text-sm">Nairobi City Stadium</p>
+                        <h3 className="font-bold">Dispatch Location</h3>
+                        <p className="text-sm">1°17'47.7"S 36°52'24.6"E</p>
                       </div>
                     </Popup>
                   </Marker>

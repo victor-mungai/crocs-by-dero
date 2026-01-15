@@ -1,0 +1,22 @@
+# M-Pesa Configuration
+MPESA_CONSUMER_KEY=7bC3y49xfxnBoPsdia2H3PuAKgqjJA6dWelwpTcfGAmIWyQI
+MPESA_CONSUMER_SECRET=OCadC4BTlZxhAGO18ZcNmNyOMsaRA9wIlxhYP8BnxqX5dyE1kyqTtyeHpmrW0Jrp
+MPESA_SHORTCODE=6151127
+MPESA_PASSKEY=1738
+MPESA_PARTY_B=174379
+MPESA_ENVIRONMENT=production
+MPESA_CALLBACK_URL=https://crocs-by-dero.vercel.app/api/payment-callback
+
+# Firebase Configuration
+# Note: VITE_FIREBASE_API_KEY is safe to expose publicly - it's meant for browser use
+# Security is enforced through Firebase Security Rules, not by hiding this key
+VITE_FIREBASE_API_KEY=AIzaSyCUilWtfkmHS6xkxfY5fgA_Jc8w8VphpJU
+VITE_FIREBASE_AUTH_DOMAIN=crocs-by-dero.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=crocs-by-dero
+VITE_FIREBASE_STORAGE_BUCKET=crocs-by-dero.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=610664718482
+VITE_FIREBASE_APP_ID=1:610664718482:web:22b987814f1fa8089a064b
+
+# Google Maps API Key (Optional - for delivery location selection)
+# Note: This key is safe to expose but should be restricted to your domain in Google Cloud Console
+VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here

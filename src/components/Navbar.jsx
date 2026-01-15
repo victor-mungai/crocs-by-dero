@@ -71,6 +71,18 @@ export default function Navbar() {
             >
               Contact
             </Link>
+            {user && (
+              <Link
+                to="/orders"
+                className={`px-3 py-2 rounded-lg transition-all duration-200 ${
+                  isActive('/orders') 
+                    ? 'text-crocs-green font-semibold bg-crocs-light' 
+                    : 'text-gray-700 hover:text-crocs-green hover:bg-gray-50'
+                }`}
+              >
+                My Orders
+              </Link>
+            )}
             {user ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2 text-gray-700">
@@ -158,6 +170,17 @@ export default function Navbar() {
               >
                 Contact
               </Link>
+              {user && (
+                <Link
+                  to="/orders"
+                  onClick={() => setIsOpen(false)}
+                  className={`block px-3 py-2 rounded-lg ${
+                    isActive('/orders') ? 'text-crocs-green font-semibold bg-crocs-light' : 'text-gray-700'
+                  }`}
+                >
+                  My Orders
+                </Link>
+              )}
               {user ? (
                 <>
                   <div className="px-3 py-2 rounded-lg text-gray-700 flex items-center space-x-2">

@@ -1198,7 +1198,7 @@ export default function Admin() {
                           )}
                         </td>
                         <td className="py-4 px-4">
-                          {order.status === 'placed' && !order.riderId && (
+                          {(order.status === 'pending' || order.status === 'placed') && !order.riderId && (
                             <button
                               onClick={() => setSelectedOrder(order)}
                               className="px-3 py-1 bg-crocs-green text-white rounded-lg text-sm font-semibold hover:bg-crocs-dark transition-colors flex items-center space-x-1"

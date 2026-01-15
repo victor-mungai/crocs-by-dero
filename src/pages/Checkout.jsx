@@ -245,7 +245,7 @@ export default function Checkout() {
         total,
         paymentMethod: 'mpesa',
         paymentReference: orderRef,
-        status: 'placed'
+        status: 'pending' // Admin will change to 'dispatched' when assigning rider
       }
 
       const newOrder = await placeOrder(orderData)
@@ -444,7 +444,7 @@ export default function Checkout() {
                         </Marker>
                       )}
                       <Marker position={[getPickupLocation().lat, getPickupLocation().lng]} icon={blueIcon}>
-                        <Popup>Pickup Location (Nairobi City Stadium)</Popup>
+                        <Popup>Dispatch Location</Popup>
                       </Marker>
                     </MapContainer>
                   </div>
@@ -479,10 +479,10 @@ export default function Checkout() {
                   <h3 className="font-semibold text-gray-900 mb-2">Pickup Location</h3>
                   <p className="text-sm text-gray-600 mb-2">
                     <MapPin size={16} className="inline mr-1" />
-                    Nairobi City Stadium
+                    Dispatch Location (1°17'47.7"S 36°52'24.6"E)
                   </p>
                   <p className="text-sm text-gray-600">
-                    Please collect your order from our pickup location. We'll notify you when it's ready for collection.
+                    Please collect your order from our dispatch location. We'll notify you when it's ready for collection.
                   </p>
                 </motion.div>
               )}

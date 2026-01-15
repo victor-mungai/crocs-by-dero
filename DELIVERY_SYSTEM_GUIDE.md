@@ -26,7 +26,7 @@ This system provides a complete e-commerce and delivery solution with:
   - 10-15 km: KES 400
   - 15-20 km: KES 500
   - 20+ km: KES 500 + KES 50 per additional km
-- Pickup location: Nairobi City Stadium (-1.2921, 36.8219)
+- Dispatch location: 1°17'47.7"S 36°52'24.6"E (-1.296583, 36.8735)
 
 ### 3. Order Context (`src/context/OrderContext.jsx`)
 - Manages order state across the application
